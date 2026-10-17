@@ -197,7 +197,7 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null){
  if(key==='scapegoat'&&!bot&&destinationId==null){
   const options=living().filter(p=>p.id!==by&&p.id!==targetId);
   showModal('Scapegoat — انتخاب مقصد',`<div class="inset"><strong>انتقال تمام کارت‌های رو‌به‌روی ${esc(target.name)}</strong><p>طبق قانون اول Salem، مقصد نباید خودت یا بازیکن مبدأ باشد. یک نفر را برای انتقال انتخاب کن.</p></div><div class="tryal-chooser">${options.map(p=>`<button class="btn outline" data-scapegoat-to="${p.id}">${esc(p.name)}</button>`).join('')}</div>`,[],true);
-  $('#modalBody [data-scapegoat-to]').forEach(btn=>btn.addEventListener('click',()=>{
+  $$('#modalBody [data-scapegoat-to]').forEach(btn=>btn.addEventListener('click',()=>{
    const id=Number(btn.dataset.scapegoatTo);
    if(!legalTarget(by,targetId,key)||id===by||id===targetId||!member(id)?.alive)return;
    forceClose();playCard(by,handIndex,targetId,false,id);
