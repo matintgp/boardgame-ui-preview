@@ -189,11 +189,21 @@ function removeAlibiAccusations(target){
  target.accusations=Math.max(0,target.accusations-score);
  return score;
 }
-function playCard(by,handIndex,targetId,bot=false){
+function playCard(by,handIndex,targetId,bot=false,destinationId=null){
  const owner=member(by);
  if(!owner?.alive||game.phase!=='turn'||by!==game.current||game.pendingReveal!=null)return false;
  const key=owner.hand[handIndex],card=CARD[key],target=member(targetId);
  if(!card||!legalTarget(by,targetId,key))return false;
+ if(key==='scapegoat'&&!bot&&destinationId==null){
+  const options=living().filter(p=>p.id!==by&&p.id!==targetId);
+  showModal('Scapegoat — انتخاب مقصد',`<div class="inset"><strong>انتقال تمام کارت‌های رو‌به‌روی ${esc(target.name)}</strong><p>طبق قانون اول Salem، مقصد نباید خودت یا بازیکن مبدأ باشد. یک نفر را برای انتقال انتخاب کن.</p></div><div class="tryal-chooser">${options.map(p=>`<button class="btn outline" data-scapegoat-to="${p.id}">${esc(p.name)}</button>`).join('')}</div>`,[],true);
+  $('#modalBody [data-scapegoat-to]').forEach(btn=>btn.addEventListener('click',()=>{
+   const id=Number(btn.dataset.scapegoatTo);
+   if(!legalTarget(by,targetId,key)||id===by||id===targetId||!member(id)?.alive)return;
+   forceClose();playCard(by,handIndex,targetId,false,id);
+  }));
+  return true;
+ }
  owner.hand.splice(handIndex,1);
  if(card.kind==='green')game.discard.push(key);
  let body='';
@@ -222,8 +232,8 @@ function playCard(by,handIndex,targetId,bot=false){
   const removed=target.effects.splice(index,1)[0];game.discard.push(removed);
   body=`${owner.name} با Curse کارت آبی ${CARD[removed]?.label||removed} را از جلوی ${target.name} برداشت.`;
  }else if(key==='scapegoat'){
-  const other=random(living().filter(p=>p.id!==targetId&&p.id!==by));
-  if(!other)return false;
+  const other=destinationId!=null?member(destinationId):random(living().filter(p=>p.id!==targetId&&p.id!==by));
+  if(!other?.alive||other.id===by||other.id===targetId)return false;
   other.redPile.push(...target.redPile);
   other.accusations+=target.accusations;
   other.effects.push(...target.effects);
