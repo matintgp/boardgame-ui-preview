@@ -17,6 +17,8 @@ const CARD={
   asylum:{label:'پناهگاه (Asylum)',kind:'blue',image:IMG.letter,help:'بازیکن را تا زمان حذف اثر، از یک حمله شبانه حفاظت می‌کند.'},
   scapegoat:{label:'سپر بلا (Scapegoat)',kind:'green',image:IMG.letter,help:'همه کارت‌های رو به روی یک نفر را به نفر دیگر منتقل می‌کند؛ بدون اثر روی خودت.'},
   curse:{label:'نفرین (Curse)',kind:'green',image:IMG.witch,help:'یک کارت آبیِ روی بازیکن دیگر را حذف می‌کند.'},
+  stocks:{label:'بازداشت (Stocks)',kind:'blue',image:IMG.gavel,help:'بازیکن هدف نوبت بعدی را از دست می‌دهد.'},
+  piety:{label:'پارسا (Piety)',kind:'blue',image:IMG.evidence,help:'تا زمان حذف کارت، از اتهام مستقیم قرمز جلوگیری می‌کند.'},
   conspiracy:{label:'Conspiracy',kind:'black',image:IMG.letter,help:'کارت‌های Tryal میان بازیکنان زنده جابه‌جا می‌شوند.'},
   night:{label:'Night',kind:'black',image:IMG.village,help:'جادوگران حمله و کلانتر محافظت را انتخاب می‌کند.'}
 };
@@ -39,6 +41,8 @@ function save(){try{if(game)localStorage.setItem(SET_KEY,JSON.stringify(game));}
 function read(){try{const g=JSON.parse(localStorage.getItem(SET_KEY));return g?.schema===3&&g.players?.length>=4&&g.players.length<=10&&Array.isArray(g.deck)&&g.players.every(p=>Array.isArray(p.tryals)&&Array.isArray(p.hand))?g:null;}catch(e){return null;}}
 function legalTarget(by,targetId,key){
  const a=member(by),b=member(targetId);if(!a?.alive||!b?.alive||by===targetId||!CARD[key]||CARD[key].kind==='black')return false;
+ if(CARD[key].kind==='blue'&&living().length<=2)return false;
+ if(CARD[key].kind==='red'&&b.effects.includes('piety'))return false;
  if(key==='scapegoat')return living().filter(p=>p.id!==by&&p.id!==targetId).length>0;
  if(key==='curse')return b.effects.some(x=>CARD[x]?.kind==='blue');
  return true;
@@ -63,7 +67,7 @@ function showLobby(){token++;running=false;$('#gamePage').hidden=true;$('#lobbyP
 function showGame(){ $('#lobbyPage').hidden=true;$('#gamePage').hidden=false;render();window.scrollTo(0,0); }
 function refreshLobby(){let n=Number($('#playerCount').value)||6;$('#seatCount').textContent=`${n} جایگاه`;$('#lobbySeats').innerHTML=cast.slice(0,n).map((v,i)=>`<div class="lobby-seat"><img src="${P}${v[2]}.webp" alt=""><div><b>${esc(v[0])}</b><small>${i?'بازیکن نمایشی':'میزبان · شما'}</small></div></div>`).join('');$('#resumeGame').hidden=!read();}
 function buildDeck(){
-  const counts={acc1:18,acc2:13,acc3:6,alibi:7,asylum:5,scapegoat:5,curse:5};
+  const counts={acc1:18,acc2:13,acc3:6,alibi:5,asylum:5,scapegoat:4,curse:3,stocks:2,piety:1};
   let cards=shuffle(Object.entries(counts).flatMap(([k,n])=>Array(n).fill(k)));
   return cards;
 }
@@ -207,6 +211,12 @@ function playCard(by,handIndex,targetId,bot=false){
  }else if(key==='asylum'){
   target.effects.push('asylum');
   body=`${owner.name} کارت پناهگاه را مقابل ${target.name} گذاشت.`;
+ }else if(key==='stocks'){
+  target.effects.push('stocks');
+  body=`${owner.name}، ${target.name} را بازداشت کرد؛ نوبت بعدی او رد می‌شود.`;
+ }else if(key==='piety'){
+  target.effects.push('piety');
+  body=`${owner.name}، کارت Piety را برای ${target.name} قرار داد.`;
  }else if(key==='curse'){
   const index=target.effects.findIndex(k=>CARD[k]?.kind==='blue');
   const removed=target.effects.splice(index,1)[0];game.discard.push(removed);
@@ -260,7 +270,9 @@ function revealTryal(id,index,source='tryal'){
  if(t.type==='witch'||p.tryals.every(x=>x.revealed))eliminate(id,t.type==='witch'?'افشای کارت Witch':'افشای تمام Tryalها');
  winCheck();
 }
-function eliminate(id,why){const p=member(id);if(!p?.alive)return;p.alive=false;p.tryals.forEach(t=>t.revealed=true);game.discard.push(...p.hand,...(p.redPile||[]),...p.effects);p.hand=[];p.redPile=[];p.effects=[];log('بازیکن حذف شد',`${p.name} به علت ${why} از بازی حذف شد.`);if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
+function eliminate(id,why){const p=member(id);if(!p?.alive)return;p.alive=false;p.tryals.forEach(t=>t.revealed=true);game.discard.push(...p.hand,...(p.redPile||[]),...p.effects);p.hand=[];p.redPile=[];p.effects=[];
+ if(living().length===2){for(const q of living()){const keep=[];for(const key of q.effects){if(CARD[key]?.kind==='blue')game.discard.push(key);else keep.push(key);}q.effects=keep;}}
+ log('بازیکن حذف شد',`${p.name} به علت ${why} از بازی حذف شد.`);if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
 function drawTwo(by,count=2){
  const owner=member(by);
  if(!owner?.alive||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
@@ -294,12 +306,26 @@ function endTurn(){
 }
 function advanceTurn(){
  if(game.phase!=='turn'||game.winner||game.pendingReveal!=null)return;
- const alive=living();if(!alive.length)return;
+ if(!living().length)return;
  let pos=game.current,next=null;
- for(let i=0;i<game.players.length;i++){pos=(pos+1)%game.players.length;if(member(pos)?.alive){next=pos;break;}}
- if(next===null)return;
- if(next<=game.current)game.round++;
- game.current=next;game.turn++;game.played=0;game.action='choose';chosenCard=null;chosenTarget=null;render();
+ // Stocks skips a player's next turn; multiple Stocks can skip multiple turns.
+ for(let attempts=0;attempts<game.players.length*8;attempts++){
+  pos=(pos+1)%game.players.length;
+  const candidate=member(pos);
+  if(!candidate?.alive)continue;
+  if(pos<=game.current)game.round++;
+  game.turn++;
+  const i=candidate.effects.indexOf('stocks');
+  if(i>=0){
+   candidate.effects.splice(i,1);
+   game.discard.push('stocks');
+   log('بازداشت',`نوبت ${candidate.name} به‌دلیل Stocks رد شد.`);
+   continue;
+  }
+  next=pos;break;
+ }
+ if(next===null){render();return;}
+ game.current=next;game.played=0;game.action='choose';chosenCard=null;chosenTarget=null;render();
  if(next!==0)queueBot();
 }
 function queueBot(){if(!game||game.phase!=='turn'||game.current===0||game.winner||game.pendingReveal!=null)return;const t=token;running=true;render();setTimeout(()=>{if(t!==token||!game||game.phase!=='turn'||game.current===0)return;running=false;botMove();},rapid?45:370);}
