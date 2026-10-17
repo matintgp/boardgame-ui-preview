@@ -308,7 +308,9 @@ function botMove(){if(!game||game.phase!=='turn'||game.current===0||game.pending
  if(!offensive.length||Math.random()<.45){drawTwo(p.id);return;}
  let chosen=random(offensive), target=random(others);
  if(['acc1','acc2','acc3','curse'].includes(chosen.k)){
-  const pool=others.filter(q=>q.witchEver!==p.witchEver);target=random(pool.length?pool:others);
+  // AI uses only public table information, NEVER another player's private Tryals.
+  const weighted=others.flatMap(q=>Array(Math.max(1,Math.min(5,1+Math.floor(q.accusations/2)))).fill(q));
+  target=random(weighted);
  } else if(['alibi','asylum'].includes(chosen.k)){
   target=random(living().filter(q=>q.id!==p.id));
  }
@@ -390,13 +392,14 @@ function resolveNight(){
  if(p?.alive){
   if(game.nightProtect===p.id||p.effects.includes('asylum')||(p.id===0&&game.nightConfessed)){
     report='حمله شبانه ناکام ماند. بازیکن هدف نجات یافت.';
-    if(p.effects.includes('asylum')){p.effects.splice(p.effects.indexOf('asylum'),1);game.discard.push('asylum');}
+    // Asylum is a persistent Blue card. It remains until moved/removed or its holder dies.
   }else{eliminate(p.id,'حمله شبانه');report=`${p.name} در تاریکی شب از بازی حذف شد.`;}
  }
  log('طلوع روز',report);game.lastPublic=report;
  if(game.winner)return;
  game.phase='turn';game.nightTargetUser=null;game.nightSelection=null;game.nightConfessed=false;
- const discard=game.discard.filter(x=>!['night','conspiracy'].includes(x));
+ // Both Conspiracy and normal discards re-enter the deck after Night.
+ const discard=game.discard.filter(x=>x!=='night');
  game.deck=shuffle([...game.deck.filter(x=>x!=='night'),...discard]);game.deck.push('night');game.discard=[];
  render();showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(report)}</p><p class="inset">کارت‌های دورریز برای دور بعد بازگردانده شدند. ترتیب نوبت‌های معمول ادامه پیدا می‌کند.</p>`,[{label:'بازگشت به بازی',primary:true,fn:nextAfterBlack}]);
 }
