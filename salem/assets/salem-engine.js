@@ -247,7 +247,7 @@ function requestTryalReveal(id){
    finishSelection(random(choices).i);
    return;
  }
- const cards=choices.map(({i})=>`<button class="tryal-mini secret" data-reveal-index="${i}"><b>Tryal ${i+1}</b></button>`).join('');
+ const cards=choices.map(({i})=>`<button class="tryal-mini secret" data-reveal-index="${i}" aria-label="انتخاب کارت مخفی شماره ${i+1}"><b>Tryal ${i+1}</b></button>`).join('');
  showModal('هفت اتهام — انتخاب بازیکن اتهام‌زننده',`<div class="inset"><strong>${esc(p.name)} زیر اتهام است</strong><p>شما اتهام هفتم را ثبت کرده‌ای. یکی از کارت‌های مخفی این بازیکن را برای افشا انتخاب کن. بقیه کارت‌ها محرمانه می‌مانند.</p></div><div class="tryal-chooser">${cards}</div>`,[],false);
  $$('#modalBody [data-reveal-index]').forEach(btn=>btn.addEventListener('click',()=>{
   const idx=Number(btn.dataset.revealIndex);forceClose();finishSelection(idx);
@@ -269,6 +269,8 @@ function drawTwo(by,count=2){
   if(!game.deck.length)game.deck=['night'];
   const key=game.deck.shift(),card=CARD[key];
   if(!card)break;
+  // With two survivors, Blue cards are set aside and replaced immediately.
+  if(living().length<=2&&card.kind==='blue'){game.discard.push(key);i--;continue;}
   if(card.kind==='black'){
    game.pendingDraw={owner:by,remaining:count-i-1};
    log('کارت سیاه کشیده شد',`${owner.name} کارت ${card.label} را رو کرد؛ اثر بلافاصله اجرا می‌شود.`);
@@ -304,12 +306,12 @@ function queueBot(){if(!game||game.phase!=='turn'||game.current===0||game.winner
 function botMove(){if(!game||game.phase!=='turn'||game.current===0||game.pendingReveal!=null)return;
  const p=current();if(!p?.alive){advanceTurn();return;}
  const others=living().filter(x=>x.id!==p.id);
- const offensive=p.hand.map((k,i)=>({k,i})).filter(x=>['acc1','acc2','acc3','alibi','asylum','curse','scapegoat'].includes(x.k));
+ const offensive=p.hand.map((k,i)=>({k,i,validTargets:others.filter(t=>legalTarget(p.id,t.id,k))})).filter(x=>x.validTargets.length);
  if(!offensive.length||Math.random()<.45){drawTwo(p.id);return;}
- let chosen=random(offensive), target=random(others);
+ let chosen=random(offensive), target=random(chosen.validTargets);
  if(['acc1','acc2','acc3','curse'].includes(chosen.k)){
   // AI uses only public table information, NEVER another player's private Tryals.
-  const weighted=others.flatMap(q=>Array(Math.max(1,Math.min(5,1+Math.floor(q.accusations/2)))).fill(q));
+  const weighted=chosen.validTargets.flatMap(q=>Array(Math.max(1,Math.min(5,1+Math.floor(q.accusations/2)))).fill(q));
   target=random(weighted);
  } else if(['alibi','asylum'].includes(chosen.k)){
   target=random(living().filter(q=>q.id!==p.id));
