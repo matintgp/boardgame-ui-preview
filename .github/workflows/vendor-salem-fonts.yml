@@ -1,0 +1,55 @@
+name: Salem — vendor Persian font
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vendor-salem-fonts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-font:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned open-source Vazirmatn asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/salem-fontsource --no-save --no-audit --no-fund @fontsource-variable/vazirmatn@5.3.0
+          pkg=/tmp/salem-fontsource/node_modules/@fontsource-variable/vazirmatn
+          mkdir -p salem/assets/fonts
+          arabic="$(find "$pkg/files" -name 'vazirmatn-arabic-wght-normal.woff2' -print -quit)"
+          latin="$(find "$pkg/files" -name 'vazirmatn-latin-wght-normal.woff2' -print -quit)"
+          test -n "$arabic" && test -n "$latin"
+          cp "$arabic" salem/assets/fonts/vazirmatn-arabic-wght-normal.woff2
+          cp "$latin" salem/assets/fonts/vazirmatn-latin-wght-normal.woff2
+          test -s salem/assets/fonts/vazirmatn-arabic-wght-normal.woff2
+          test -s salem/assets/fonts/vazirmatn-latin-wght-normal.woff2
+          if test -f "$pkg/OFL.txt"; then
+            cp "$pkg/OFL.txt" salem/assets/fonts/OFL.txt
+          else
+            curl -fsSL https://raw.githubusercontent.com/google/fonts/main/ofl/vazirmatn/OFL.txt -o salem/assets/fonts/OFL.txt
+          fi
+          test -s salem/assets/fonts/OFL.txt
+          ls -lh salem/assets/fonts/
+      - name: Commit font assets to repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add salem/assets/fonts
+          if ! git diff --cached --quiet; then
+            git commit -m "Vendor Vazirmatn Persian and Latin variable subsets for Salem"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
