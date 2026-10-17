@@ -6,3 +6,47 @@
 @media(max-width:870px){.game-layout{display:flex;flex-direction:column}.game-layout .center-col{order:0;width:100%}.game-layout .side-col:first-child{order:1;width:100%;display:grid;grid-template-columns:1fr 1fr}.game-layout .side-col:first-child>.panel:first-child{grid-column:1/-1}.game-layout .side-col:last-child{order:2;display:grid;grid-template-columns:1fr 1fr;width:100%}.game-layout .side-col:last-child>.panel:last-child{grid-column:1/-1}.status-chips{justify-content:flex-start}.game-status{display:block}.game-status .status-chips{margin-top:12px}.board-panel{padding:12px}.salem-board{min-height:620px}.seat-grid{grid-template-columns:repeat(var(--cols,3),minmax(0,1fr))}.player-seat .seat-ident img{width:38px;height:42px}}
 @media(max-width:540px){.app{padding:10px}.topbar{padding:11px;border-radius:16px}.brand strong{font-size:13px}.brand small{font-size:9px}.brand-badge{width:36px;height:36px;font-size:20px}.demo-label{display:none}.header-actions{gap:6px}.header-actions .btn{padding:8px 10px;font-size:10px;min-height:36px}.lobby-hero,.hero-body{min-height:430px}.hero-body{padding:23px}.hero-body h1{font-size:39px}.hero-body p{font-size:12px}.lobby-side{gap:11px}.panel-pad{padding:15px}.lobby-seats{grid-template-columns:1fr 1fr}.field-grid{grid-template-columns:1fr 1fr}.section-title h2{font-size:15px}.game-status{padding:14px;border-radius:16px}.status-title h1{font-size:19px}.status-title p{font-size:11px}.salem-board{padding:9px;gap:7px;min-height:740px}.seat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.player-seat{padding:6px;gap:4px}.player-seat .seat-ident img{width:35px;height:37px}.player-seat strong{font-size:10px}.player-seat .seat-meta{font-size:9px}.tiny-trials span{height:11px}.table-hub{border-radius:30px;width:90%;min-height:150px;padding:12px 16px;margin:7px auto}.table-hub h3{font-size:16px}.table-hub p{font-size:10px}.salem-board .table-hub .hub-icon{font-size:18px}.game-layout .side-col:first-child,.game-layout .side-col:last-child{display:grid;grid-template-columns:1fr}.game-layout .side-col:last-child>.panel:last-child{grid-column:auto}.game-layout{gap:11px}.center-col,.side-col{gap:11px}.action-card{flex-basis:143px;width:143px}.action-card img{height:92px}.mobile-dock{position:fixed;z-index:20;bottom:10px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#09141eef;border:1px solid #b5935c70;border-radius:18px;box-shadow:0 14px 38px #0009;backdrop-filter:blur(12px)}.mobile-dock .dock-text{display:grid;gap:4px;min-width:0}.mobile-dock strong{font-size:11px}.mobile-dock small{font-size:9px;color:var(--muted);line-height:1.4}.mobile-dock .btn{min-height:42px;font-size:10px;padding:9px 11px;flex:none}#gamePage{padding-bottom:85px}.reveal-layout{grid-template-columns:1fr}.reveal-layout img{max-height:250px;aspect-ratio:4/3;object-position:center 22%}.modal-body{padding:15px}.modal-top{padding:13px 15px}.modal-top h2{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+
+/* Salem V3 — accessible, restrained motion; existing colors and artwork preserved */
+@keyframes salemReveal {from{opacity:.2;transform:rotateY(85deg) scale(.82)}to{opacity:1;transform:rotateY(0) scale(1)}}
+@keyframes salemEntrance {from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes salemMoonlight {0%,100%{opacity:.18;transform:translate3d(-2%,0,0) scale(1)}50%{opacity:.38;transform:translate3d(2%,-1%,0) scale(1.04)}}
+@keyframes salemSpeakerGlow {0%,100%{box-shadow:0 0 0 1px #8db3e57d,0 0 15px #87b1d521}50%{box-shadow:0 0 0 2px #9ec3edaa,0 0 28px #87b1d548}}
+@keyframes salemMeterIn {from{transform:scaleX(.55);opacity:.5}to{transform:scaleX(1);opacity:1}}
+@keyframes salemDialogIn {from{opacity:0;transform:translateY(18px) scale(.965)}to{opacity:1;transform:translateY(0) scale(1)}}
+.salem-board{isolation:isolate;transition:background .6s ease,border-color .45s ease,filter .45s ease}
+.salem-board::after{content:"";position:absolute;inset:8%;border-radius:50%;pointer-events:none;z-index:0;background:radial-gradient(circle at 50% 45%,#f7c98210,transparent 66%);animation:salemMoonlight 10s ease-in-out infinite}
+.salem-board.night::after{background:radial-gradient(circle at 50% 45%,#6599db32,transparent 68%)}
+.salem-board.conspiracy::after{background:radial-gradient(circle at 50% 45%,#d76d8631,transparent 68%)}
+body[data-salem-phase="night"] .game-status{border-color:#7799cb64;box-shadow:0 14px 40px #0005,0 0 38px #5485c21a;transition:border-color .45s ease,box-shadow .45s ease}
+body[data-salem-phase="conspiracy"] .game-status{border-color:#c16e8269;box-shadow:0 14px 40px #0005,0 0 38px #b858691f;transition:border-color .45s ease,box-shadow .45s ease}
+.player-seat{transition:transform .22s ease,border-color .25s ease,box-shadow .25s ease,opacity .25s ease}
+.player-seat:not(.dead):hover{transform:translateY(-3px);border-color:#ddbc85a0}
+.player-seat.selected{transform:translateY(-4px);background:linear-gradient(155deg,#192b38,#0c151f)}
+.player-seat.turn-owner:not(.dead){animation:salemSpeakerGlow 2.6s ease-in-out infinite}
+.player-seat.dead{filter:grayscale(.95);opacity:.4}
+.player-seat .accuse-meter i{transform-origin:right center;animation:salemMeterIn .32s ease both}
+.tryal-mini{position:relative;overflow:hidden;perspective:600px;transition:transform .22s ease,border-color .22s ease}
+.tryal-mini.revealed{animation:salemReveal .52s cubic-bezier(.17,.67,.23,1.05) both}
+.tryal-mini.selectable{outline:2px solid #eac58d;outline-offset:2px}
+.tryal-card-back{display:grid;place-items:center;width:100%;min-height:54px;font:700 30px/1 Georgia,serif;color:#edc98f;text-shadow:0 2px 14px #d4a4619c;background:radial-gradient(circle,#6d4e2b4d,#18283822);border-radius:7px}
+.action-card{transition:transform .24s cubic-bezier(.18,.78,.2,1),box-shadow .25s ease,border-color .25s ease}
+.action-card:not(:disabled):hover{transform:translateY(-6px) rotate(-.8deg);box-shadow:0 17px 30px #0007}
+.action-card.selected{transform:translateY(-9px) scale(1.025);border-color:#f0cd92;box-shadow:0 16px 32px #0009,0 0 0 2px #e7bc7457}
+.action-card:disabled{opacity:.6;cursor:not-allowed}
+.overlay:not([hidden]){animation:salemEntrance .2s ease both}
+.overlay:not([hidden]) .modal{animation:salemDialogIn .34s cubic-bezier(.2,.8,.2,1) both}
+.tryal-chooser .tryal-mini{min-width:75px;min-height:104px;transition:transform .22s ease,box-shadow .22s ease}
+.tryal-chooser .tryal-mini:hover{transform:translateY(-5px);box-shadow:0 15px 25px #0006}
+.btn:focus-visible,.player-seat:focus-visible,.action-card:focus-visible,.tryal-mini:focus-visible{outline:3px solid #efce97;outline-offset:3px}
+@media(max-width:540px){
+ .tryal-card-back{min-height:44px}
+ .action-card.selected{transform:translateY(-5px) scale(1.01)}
+ .tryal-chooser{justify-content:center}
+ .table-hub{transition:background .4s ease}
+}
+@media(prefers-reduced-motion:reduce){
+ .salem-board::after,.player-seat.turn-owner:not(.dead),.tryal-mini.revealed,.overlay:not([hidden]),.overlay:not([hidden]) .modal,.player-seat .accuse-meter i{animation:none!important}
+ .player-seat,.action-card,.salem-board,.btn,.tryal-mini{transition:none!important}
+}
