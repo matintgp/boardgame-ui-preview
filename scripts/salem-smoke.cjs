@@ -1,0 +1,130 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { JSDOM } = require('jsdom');
+
+const base = path.resolve(__dirname, '../salem');
+const html = fs.readFileSync(path.join(base, 'index.html'), 'utf8');
+const raw = fs.readFileSync(path.join(base, 'assets/salem-engine.js'), 'utf8');
+// Test-only instrumentation, NEVER committed to the game bundle.
+const source = raw.replace(
+  'window.SalemDemo=',
+  'window.__SalemQA={state:()=>game,render,drawTwo,playCard,advanceTurn};window.SalemDemo='
+);
+assert.notEqual(source, raw, 'test instrumentation injection point');
+
+function setup(size=6, role='town') {
+  const dom = new JSDOM(html, {
+    runScripts:'outside-only',
+    url:'https://boardgame-qa.invalid/salem/',
+    pretendToBeVisual:true
+  });
+  dom.window.scrollTo = () => {};
+  dom.window.eval(source);
+  const doc=dom.window.document;
+  doc.getElementById('playerCount').value=String(size);
+  doc.getElementById('testRole').value=role;
+  doc.getElementById('startGame').click();
+  const qa=dom.window.__SalemQA;
+  assert.ok(qa.state());
+  return {dom,doc,qa};
+}
+const click=(doc,selector)=>{
+ const element=doc.querySelector(selector);
+ assert.ok(element, 'missing '+selector);
+ element.click();
+};
+
+test('official Tryal counts for each supported lobby size',()=>{
+ for(const n of [4,5,6,7,8,9,10]){
+  const {dom,qa}=setup(n);
+  const s=qa.state();
+  assert.equal(s.players.length,n);
+  assert.equal(s.players.every(p=>p.tryals.length === (n<=7?5:n<=9?4:3)),true);
+  assert.equal(s.players.reduce((v,p)=>v+p.tryals.filter(t=>t.type==='witch').length,0),n<=5?1:2);
+  assert.equal(s.players.reduce((v,p)=>v+p.tryals.filter(t=>t.type==='constable').length,0),1);
+  dom.window.close();
+ }
+});
+
+test('public table and closed private cards do not reveal unknown roles in the DOM',()=>{
+ const {dom,doc,qa}=setup();
+ const state=qa.state();
+ assert.equal(doc.querySelectorAll('#myTryals img').length,0);
+ for(const p of state.players.slice(1)){
+  assert.equal(doc.querySelector('[data-seat="'+p.id+'"] .tiny-trials').textContent.replace(/\\s/g,''), '?'.repeat(p.tryals.length));
+ }
+ assert.equal(typeof dom.window.SalemDemo.debugConspiracy,'undefined');
+ assert.equal(typeof dom.window.SalemDemo.debugAdvanceToNight,'undefined');
+ assert.equal('players' in dom.window.SalemDemo.getSnapshot(),false);
+ dom.window.close();
+});
+
+test('turn enforcement, illegal self-target and owner of seventh accusation',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ click(doc,'[data-seat="0"]');
+ assert.equal(doc.getElementById('selectedTarget').textContent.includes('هدف: شما'),false);
+ const s=qa.state();
+ s.players[0].hand=['acc1'];s.players[1].accusations=6;s.players[1].redPile=Array(6).fill('acc1');
+ qa.render();
+ click(doc,'[data-hand="0"]');click(doc,'[data-seat="1"]');
+ click(doc,'[data-action="play"]');
+ assert.equal(s.pendingReveal,1);
+ assert.equal(s.pendingRevealActor,0);
+ assert.equal(s.players[1].accusations,0);
+ assert.equal(s.players[1].redPile.length,0);
+ click(doc,'[data-reveal-index]');
+ assert.equal(s.pendingReveal,null);
+ assert.equal(s.current,0,'human may continue their turn after seventh accusation');
+ assert.equal(s.played,1);
+ assert.equal(qa.playCard(1,0,0,true),false,'opponent cannot act during player turn');
+ dom.window.close();
+});
+
+test('Black Conspiracy interrupts drawing, resolves, then takes the remaining card',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state();s.deck=['conspiracy','acc1','night'];
+ s.players[0].hand=[];qa.render();
+ click(doc,'[data-action="draw"]');
+ assert.equal(s.phase,'conspiracy');
+ assert.equal(s.pendingDraw.remaining,1);
+ assert.equal(s.pendingDraw.owner,0);
+ click(doc,'[data-cat-trial]');
+ assert.equal(s.phase,'conspiracy');
+ click(doc,'#modalBody .modal-actions button');
+ assert.equal(s.phase,'turn');
+ assert.equal(s.pendingDraw,null);
+ assert.equal(s.players[0].hand.includes('acc1'),true);
+ assert.notEqual(s.current,0);
+ dom.window.close();
+});
+
+test('night resolution returns from a black event to the current turn progression',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state();s.deck=['night','acc2','night'];
+ qa.render();
+ click(doc,'[data-action="draw"]');
+ assert.equal(s.phase,'night');
+ assert.equal(s.pendingDraw.remaining,1);
+ s.nightTarget=1;s.nightProtect=2;
+ click(doc,'[data-action="night-done"]');
+ assert.equal(s.phase,'turn');
+ click(doc,'#modalBody .modal-actions button');
+ assert.equal(s.pendingDraw,null);
+ assert.equal(s.players[0].hand.includes('acc2'),true);
+ dom.window.close();
+});
+
+test('all local image paths exist and are nonempty',()=>{
+ const imgRoot=path.join(base,'assets');
+ const matches=[...raw.matchAll(/assets\\/[a-z0-9_/-]+\\.webp/g)].map(x=>x[0]);
+ assert.ok(matches.length>5);
+ for(const image of new Set(matches)){
+   assert.ok(fs.statSync(path.join(base,image)).size>50,'missing '+image);
+ }
+ assert.ok(fs.statSync(path.join(imgRoot,'salem.css')).size>1000);
+});
