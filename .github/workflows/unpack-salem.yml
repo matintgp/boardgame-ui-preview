@@ -1,0 +1,43 @@
+name: Unpack Salem preview upload
+on:
+  push:
+    branches: [main]
+    paths:
+      - boardgame-salem-v2-complete.zip
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out preview repository
+        uses: actions/checkout@v4
+
+      - name: Extract the verified Salem frontend demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f boardgame-salem-v2-complete.zip
+          mkdir -p _salem_extract
+          unzip -q boardgame-salem-v2-complete.zip -d _salem_extract
+          test -f _salem_extract/boardgame-salem-v2/index.html
+          cp -a _salem_extract/boardgame-salem-v2/. ./
+          rm -rf _salem_extract
+          rm boardgame-salem-v2-complete.zip
+          test -f index.html
+          test -f assets/salem-engine.js
+
+      - name: Commit expanded preview source to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "Publish complete Salem V2 frontend preview"
+            git push
+          fi
