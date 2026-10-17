@@ -181,3 +181,19 @@ test('Stocks consumes one skipped turn and Piety blocks direct accusations',()=>
  assert.equal(qa.playCard(0,0,1,false),false);
  dom.window.close();
 });
+
+
+test('Salem uses the shared Persian typography with self-hosted variable font files',()=>{
+ const css=fs.readFileSync(path.join(base,'assets/salem.css'),'utf8');
+ assert.match(html, /fonts\.googleapis\.com\/css2\?family=Outfit/);
+ assert.match(css, /--salem-font-fa:'Salem Vazirmatn'/);
+ assert.match(css, /font-family:var\(--salem-font-fa\)/);
+ assert.match(css, /font-size:clamp\(38px,4\.65vw,64px\)/);
+ assert.match(css, /@media\(max-width:540px\)/);
+ for(const file of ['vazirmatn-arabic-wght-normal.woff2','vazirmatn-latin-wght-normal.woff2']){
+   const buff=fs.readFileSync(path.join(base,'assets/fonts',file));
+   assert.ok(buff.length>10000,file+' should not be empty');
+   assert.equal(buff.subarray(0,4).toString('ascii'),'wOF2','font file signature '+file);
+ }
+ assert.ok(fs.statSync(path.join(base,'assets/fonts/OFL.txt')).size>1000,'font license must be included');
+});
