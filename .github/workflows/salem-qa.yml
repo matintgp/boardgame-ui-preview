@@ -1,0 +1,36 @@
+name: Salem — gameplay and security smoke tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'salem/**'
+      - 'scripts/salem-smoke.cjs'
+      - '.github/workflows/salem-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  salem-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout preview repository
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax validation
+        run: |
+          node --check salem/assets/salem-engine.js
+          node --check scripts/salem-smoke.cjs
+      - name: Install isolated test-only DOM dependency
+        run: |
+          mkdir -p /tmp/salem-smoke-deps
+          npm install --prefix /tmp/salem-smoke-deps --no-save --no-audit --no-fund jsdom@26
+      - name: Rule flow, secrecy and asset tests
+        env:
+          NODE_PATH: /tmp/salem-smoke-deps/node_modules
+        run: node --test scripts/salem-smoke.cjs
