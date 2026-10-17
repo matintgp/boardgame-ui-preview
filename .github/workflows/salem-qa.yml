@@ -48,8 +48,8 @@ jobs:
             echo '# Salem smoke test — latest verified pass'
             echo
             echo '- Result: **PASS** (all automated tests succeeded)'
-            echo '- Tested Git commit: '"'`'"'${GITHUB_SHA}'"'`'"'
-            echo '- Run: https://github.com/'${GITHUB_REPOSITORY}'/actions/runs/'${GITHUB_RUN_ID}
+            echo "- Tested Git commit: ${GITHUB_SHA}"
+            echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo
             echo 'This is a frontend smoke test, not a security certification.'
           } > docs/SALEM_QA_STATUS.md
