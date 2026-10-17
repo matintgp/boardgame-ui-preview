@@ -1,0 +1,57 @@
+name: Publish unified BoardGame demo
+on:
+  push:
+    branches: [main]
+    paths:
+      - boardgame-unified-v14-upload.zip
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: boardgame-demo-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out preview source
+        uses: actions/checkout@v4
+      - name: Validate and extract unified frontend bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f boardgame-unified-v14-upload.zip
+          mkdir -p _unified_preview_extract
+          unzip -q boardgame-unified-v14-upload.zip -d _unified_preview_extract
+          test -s _unified_preview_extract/index.html
+          test -s _unified_preview_extract/assets/chess-engine.js
+          test -s _unified_preview_extract/assets/mafia.js
+          test -s _unified_preview_extract/salem/index.html
+          test -s _unified_preview_extract/salem/assets/salem-engine.js
+          test -s _unified_preview_extract/salem/assets/salem.css
+          test -s _unified_preview_extract/vercel.json
+      - name: Replace previous site without touching workflow settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf assets salem screenshots screenshots-qa screenshots-v13
+          rm -f README-FA.md QA_REPORT_FA.md NEXTJS_HANDOFF.md
+          cp -a _unified_preview_extract/. ./
+          rm -rf _unified_preview_extract
+          rm boardgame-unified-v14-upload.zip
+          test -f index.html
+          test -f salem/index.html
+      - name: Commit the full visual demo to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --staged --quiet; then
+            git commit -m "Publish BoardGame V14 unified frontend with Salem V2"
+            git push
+          fi
