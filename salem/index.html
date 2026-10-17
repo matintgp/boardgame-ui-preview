@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a131c">
+<title>BoardGame | Salem 1692 — Demo</title>
+<link rel="stylesheet" href="assets/salem.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-badge">☾</div><div><strong>BoardGame <span> / SALEM 1692</span></strong><small>دموی تعاملی بازی کارت‌محور</small></div></div>
+    <div class="header-actions"><span class="demo-label">FRONTEND DEMO</span><a class="btn ghost" href="../index.html#game/salem" aria-label="بازگشت به سایت بردگیم">← سایت بردگیم</a><button class="btn ghost" id="homeButton">لابی</button><button class="btn outline" id="helpButton">راهنمای قوانین</button></div>
+  </header>
+  <main id="lobbyPage">
+    <div class="lobby-layout">
+      <section class="lobby-hero panel"><div class="hero-shade"></div><div class="hero-body">
+        <div><div class="eyebrow">SOCIAL DEDUCTION / WITCH TRIALS</div><h1>شب‌های تاریکِ<br><em>سِیلم ۱۶۹۲</em></h1><p>سرنوشت شهر را اتهام‌ها، کارت‌های مخفی و توطئه‌ها تعیین می‌کنند. مهره‌های بازی را بشناس، کارت بکش یا بازی کن، و قبل از رسیدن شب جادوگران را پیدا کن.</p></div>
+        <div class="hero-footer"><span>۴ تا ۱۰ بازیکن در این دمو</span><span>رقبای شبیه‌سازی‌شده</span><span>تصاویر اختصاصی</span></div>
+      </div></section>
+      <div class="lobby-side">
+        <section class="panel panel-pad"><div class="section-title"><div><span class="eyebrow">ROOM SETUP</span><h2>ساخت میز آزمایشی</h2></div><span class="tag">محلی</span></div>
+          <label class="field">نام میز<input id="roomName" maxlength="40" value="پرونده نیمه‌شب"></label>
+          <div class="field-grid"><label class="field">بازیکن‌ها<select id="playerCount"><option value="4">۴ نفر</option><option value="5">۵ نفر</option><option value="6" selected>۶ نفر</option><option value="7">۷ نفر</option><option value="8">۸ نفر</option><option value="9">۹ نفر</option><option value="10">۱۰ نفر</option></select></label><label class="field">نقش آزمایشی من<select id="testRole"><option value="random">تصادفی</option><option value="town">شهروند</option><option value="witch">جادوگر</option><option value="constable">کلانتر</option></select></label></div>
+          <div class="hint-minor">انتخاب نقش فقط برای تست UX است. در بازی آنلاین، سرور کارت‌ها را به شکل محرمانه توزیع می‌کند.</div>
+          <div class="action-row"><button class="btn primary grow" id="startGame">شروع مسابقه <span>←</span></button><button class="btn outline" id="resumeGame" hidden>ادامه بازی</button></div>
+        </section>
+        <section class="panel panel-pad"><div class="section-title"><h2>بازیکن‌های میز</h2><span class="tag" id="seatCount">۶ جایگاه</span></div><div class="lobby-seats" id="lobbySeats"></div></section>
+        <section class="panel panel-pad intro-rules"><div class="section-title"><h2>قانون اصلی نوبت</h2><span class="tag">نوبتی</span></div><div class="rule-tile"><b>۰۱ / انتخاب کن</b><p>یا دو کارت بکش و نوبتت تمام شود، یا دست‌کم یک کارت بازی کن.</p></div><div class="rule-tile"><b>۰۲ / هفت اتهام</b><p>با رسیدن اتهام‌های یک بازیکن به ۷، یک کارت Tryal او رو می‌شود.</p></div><div class="rule-tile"><b>۰۳ / کارت‌های سیاه</b><p>Conspiracy کارت‌های Tryal را جابه‌جا می‌کند؛ Night یک شب سرنوشت‌ساز را آغاز می‌کند.</p></div></section>
+      </div>
+    </div>
+  </main>
+  <main id="gamePage" hidden>
+    <section class="game-status panel"><div class="status-title"><span class="eyebrow" id="roomLabel">SALEM / ROOM</span><h1 id="statusTitle">نوبت بازیکن</h1><p id="statusSubtitle">اکنون یکی از دو گزینه را انتخاب کن.</p></div><div class="status-chips"><span class="tag" id="turnBadge">نوبت ۱</span><span class="tag" id="phaseBadge">روز</span><span class="tag" id="aliveBadge">۶ نفر زنده</span><span class="tag network">LOCAL SIMULATION</span></div></section>
+    <div class="game-layout">
+      <aside class="side-col">
+        <section class="panel panel-pad"><div class="section-title"><div><span class="eyebrow">PRIVATE VIEW</span><h2>کارت‌های شخصی من</h2></div><button class="btn tiny" id="toggleSecret">نمایش نقش</button></div><div id="myIdentity"></div><div class="mini-label">کارت‌های Tryal خودت</div><div class="tryal-strip" id="myTryals"></div><p class="aside-caption">فقط کارت‌های خودت و کارت‌های عمومی افشا شده قابل مشاهده‌اند.</p></section>
+        <section class="panel panel-pad"><div class="section-title"><h2>اقدام نوبت من</h2><span class="tag" id="actionStatus">انتخاب</span></div><div id="turnActions"></div></section>
+        <section class="panel panel-pad"><div class="section-title"><h2>قوانین و وضعیت</h2></div><div class="numbers"><div><b id="deckCount">—</b><span>کارت داخل Deck</span></div><div><b id="witchProgress">—</b><span>کارت Witch افشاشده</span></div><div><b id="discardCount">—</b><span>دورریز</span></div><div><b id="roundCount">—</b><span>نوبت‌ها</span></div></div><div class="aside-caption" id="rulesHint">در نوبتت یا ۲ کارت بکش یا حداقل یک کارت بازی کن.</div></section>
+      </aside>
+      <div class="center-col">
+        <section class="panel board-panel"><div class="section-title board-head"><div><span class="eyebrow">THE TOWN TABLE</span><h2>میز محاکمه Salem</h2><p id="boardDescription">برای انتخاب هدف روی یک بازیکن بزن.</p></div><div class="board-head-extra"><span class="tag" id="selectedTarget">هدفی انتخاب نشده</span></div></div><div id="tableBoard" class="salem-board"></div></section>
+        <section class="panel panel-pad"><div class="section-title"><div><h2>کارت‌های دست تو</h2><p id="handDescription">یک کارت انتخاب کن و با کلیک روی بازیکن هدف از آن استفاده کن.</p></div><span class="tag" id="handCount">۰ کارت</span></div><div id="handCards" class="hand"></div></section>
+      </div>
+      <aside class="side-col">
+        <section class="panel panel-pad"><div class="section-title"><div><h2>وضعیت فعلی بازی</h2><p>هر تصمیم، یک مرحله جلوتر</p></div></div><div id="phaseTimeline" class="timeline"></div></section>
+        <section class="panel panel-pad"><div class="section-title"><h2>رویدادهای میز</h2><span class="tag">عمومی</span></div><div id="eventLog" class="event-log" aria-live="polite"></div></section>
+        <section class="panel panel-pad right-bottom"><div class="section-title"><h2>امکانات دمو</h2></div><div class="stacked-buttons"><button class="btn outline" id="fastTurn">تندتر شدن نوبت رقبا</button><button class="btn outline" id="saveButton">ذخیره در مرورگر</button><button class="btn ghost" id="resetButton">ساخت بازی جدید</button></div><p class="aside-caption">منطق رقیب‌ها محلی است؛ ارتباط WebSocket، دسترسی خصوصی سرور و بازی چندنفره واقعی هنوز متصل نیست.</p></section>
+      </aside>
+    </div>
+    <div class="mobile-dock" id="mobileDock"></div>
+  </main>
+</div>
+<div class="overlay" id="overlay" hidden><div class="modal panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-top"><h2 id="modalTitle">عنوان</h2><button class="btn outline tiny" id="closeModal">بستن</button></div><div class="modal-body" id="modalBody"></div></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="assets/salem-engine.js"></script>
+</body></html>
