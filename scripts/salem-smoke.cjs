@@ -130,3 +130,54 @@ test('all local image paths exist and are nonempty',()=>{
  }
  assert.ok(fs.statSync(path.join(imgRoot,'salem.css')).size>1000);
 });
+
+test('Scapegoat destination is explicitly chosen and never the acting player',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state();
+ s.players[0].hand=['scapegoat'];
+ s.players[1].accusations=2;
+ s.players[1].redPile=['acc2'];
+ s.players[1].effects=['asylum'];
+ qa.render();
+ click(doc,'[data-hand="0"]');
+ click(doc,'[data-seat="1"]');
+ click(doc,'[data-action="play"]');
+ assert.ok(doc.querySelector('[data-scapegoat-to="2"]'));
+ assert.equal(doc.querySelector('[data-scapegoat-to="0"]'),null);
+ assert.equal(doc.querySelector('[data-scapegoat-to="1"]'),null);
+ click(doc,'[data-scapegoat-to="2"]');
+ assert.equal(s.players[1].accusations,0);
+ assert.equal(s.players[1].effects.length,0);
+ assert.equal(s.players[2].accusations,2);
+ assert.equal(s.players[2].effects.includes('asylum'),true);
+ assert.equal(s.played,1);
+ dom.window.close();
+});
+
+test('Alibi removes at most three actual accusation points',()=>{
+ const {dom,qa,doc}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state();
+ s.players[0].hand=['alibi'];
+ s.players[1].accusations=4;s.players[1].redPile=['acc3','acc1'];
+ assert.equal(qa.playCard(0,0,1,false),true);
+ assert.equal(s.players[1].accusations,1);
+ assert.deepEqual(Array.from(s.players[1].redPile),['acc1']);
+ dom.window.close();
+});
+
+test('Stocks consumes one skipped turn and Piety blocks direct accusations',()=>{
+ const {dom,qa,doc}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state();
+ s.players[1].effects=['stocks'];
+ qa.advanceTurn();
+ assert.equal(s.current,2);
+ assert.equal(s.players[1].effects.includes('stocks'),false);
+ s.current=0;s.action='choose';s.played=0;
+ s.players[0].hand=['acc1'];
+ s.players[1].effects=['piety'];
+ assert.equal(qa.playCard(0,0,1,false),false);
+ dom.window.close();
+});
