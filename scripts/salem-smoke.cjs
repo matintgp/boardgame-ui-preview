@@ -53,7 +53,7 @@ test('public table and closed private cards do not reveal unknown roles in the D
  const state=qa.state();
  assert.equal(doc.querySelectorAll('#myTryals img').length,0);
  for(const p of state.players.slice(1)){
-  assert.equal(doc.querySelector('[data-seat="'+p.id+'"] .tiny-trials').textContent.replace(/\\s/g,''), '?'.repeat(p.tryals.length));
+  assert.equal(doc.querySelector('[data-seat="'+p.id+'"] .tiny-trials').textContent.replace(/\s/g,''), '?'.repeat(p.tryals.length));
  }
  assert.equal(typeof dom.window.SalemDemo.debugConspiracy,'undefined');
  assert.equal(typeof dom.window.SalemDemo.debugAdvanceToNight,'undefined');
@@ -111,6 +111,8 @@ test('night resolution returns from a black event to the current turn progressio
  assert.equal(s.phase,'night');
  assert.equal(s.pendingDraw.remaining,1);
  s.nightTarget=1;s.nightProtect=2;
+ if(s.nightSelection==='protect')click(doc,'[data-seat="1"]');
+ if(s.nightSelection==='attack')click(doc,'[data-seat="1"]');
  click(doc,'[data-action="night-done"]');
  assert.equal(s.phase,'turn');
  click(doc,'#modalBody .modal-actions button');
@@ -121,7 +123,7 @@ test('night resolution returns from a black event to the current turn progressio
 
 test('all local image paths exist and are nonempty',()=>{
  const imgRoot=path.join(base,'assets');
- const matches=[...raw.matchAll(/assets\\/[a-z0-9_/-]+\\.webp/g)].map(x=>x[0]);
+ const matches=[...raw.matchAll(new RegExp('assets/[a-z0-9_/-]+[.]webp','g'))].map(x=>x[0]);
  assert.ok(matches.length>5);
  for(const image of new Set(matches)){
    assert.ok(fs.statSync(path.join(base,image)).size>50,'missing '+image);
