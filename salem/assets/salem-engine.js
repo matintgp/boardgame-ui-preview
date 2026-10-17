@@ -172,40 +172,85 @@ function renderDock(){
  dock.innerHTML=`<div class="dock-text"><strong>نوبت شما</strong><small>${game.played?'پایان نوبت یا بازی کارت دیگر':'انتخاب کارت و هدف'}</small></div><button class="btn primary" id="dockPrimary" ${game.played===0?'disabled':''}>پایان نوبت</button>`;
  $('#dockPrimary')?.addEventListener('click',()=>endTurn());
 }
+function removeAlibiAccusations(target){
+ // Choose a combination of actual red cards whose values total at most 3.
+ const pile=target.redPile||[];
+ let best=[],score=0;
+ for(let mask=1;mask<(1<<pile.length)&&pile.length<12;mask++){
+   let total=0,indices=[];
+   for(let j=0;j<pile.length;j++)if(mask&(1<<j)){total+=CARD[pile[j]]?.value||0;indices.push(j);}
+   if(total<=3&&total>score){best=indices;score=total;}
+ }
+ for(const i of best.reverse())game.discard.push(pile.splice(i,1)[0]);
+ target.accusations=Math.max(0,target.accusations-score);
+ return score;
+}
 function playCard(by,handIndex,targetId,bot=false){
- const owner=member(by), key=owner.hand[handIndex],card=CARD[key],target=member(targetId);
- if(!card||!target?.alive||game.phase!=='turn'||by!==game.current)return false;
- if(by===targetId)return false;
- if(key==='scapegoat'&&living().length<3)return false;
- owner.hand.splice(handIndex,1);if(card.kind==='green')game.discard.push(key);
- let label='کارت بازی شد',body='';
+ const owner=member(by);
+ if(!owner?.alive||game.phase!=='turn'||by!==game.current||game.pendingReveal!=null)return false;
+ const key=owner.hand[handIndex],card=CARD[key],target=member(targetId);
+ if(!card||!legalTarget(by,targetId,key))return false;
+ owner.hand.splice(handIndex,1);
+ if(card.kind==='green')game.discard.push(key);
+ let body='';
  if(card.kind==='red'){
   target.accusations+=card.value;target.redPile.push(key);
   body=`${owner.name} با ${card.label}، ${card.value} اتهام روی ${target.name} گذاشت.`;
-  if(target.effects.includes('curse')){target.accusations++;target.effects=target.effects.filter(x=>x!=='curse');game.discard.push('curse');body+=' اثر نفرین یک اتهام دیگر اضافه کرد.';}
-  if(target.accusations>=7){target.accusations=0;game.discard.push(...target.redPile);target.redPile=[];game.pendingReveal=target.id;}
- } else if(key==='alibi'){target.accusations=Math.max(0,target.accusations-2);body=`${owner.name} با دفاع، ۲ اتهام از ${target.name} کم کرد.`;}
- else if(key==='asylum'){target.effects.push('asylum');body=`${owner.name} کارت پناهگاه را مقابل ${target.name} قرار داد.`;}
- else if(key==='curse'){target.effects.push('curse');body=`${owner.name} کارت نفرین را روی ${target.name} گذاشت.`;}
- else if(key==='scapegoat'){
-  let other=random(living().filter(p=>p.id!==targetId&&p.id!==by));
-  if(!other)other=random(living().filter(p=>p.id!==targetId));
-  const shift=Math.min(target.accusations,2);target.accusations-=shift;other.accusations+=shift;body=`${owner.name}، ${shift} اتهام را از ${target.name} به ${other.name} منتقل کرد.`;
-  if(other.accusations>=7){other.accusations=0;game.discard.push(...(other.redPile||[]));other.redPile=[];game.pendingReveal=other.id;}
+  if(target.accusations>=7){
+   target.accusations=0;
+   game.discard.push(...target.redPile);target.redPile=[];
+   game.pendingReveal=target.id;game.pendingRevealActor=by;
+  }
+ }else if(key==='alibi'){
+  const removed=removeAlibiAccusations(target);
+  body=`${owner.name} با Alibi تعداد ${removed} اتهام از ${target.name} برداشت.`;
+ }else if(key==='asylum'){
+  target.effects.push('asylum');
+  body=`${owner.name} کارت پناهگاه را مقابل ${target.name} گذاشت.`;
+ }else if(key==='curse'){
+  const index=target.effects.findIndex(k=>CARD[k]?.kind==='blue');
+  const removed=target.effects.splice(index,1)[0];game.discard.push(removed);
+  body=`${owner.name} با Curse کارت آبی ${CARD[removed]?.label||removed} را از جلوی ${target.name} برداشت.`;
+ }else if(key==='scapegoat'){
+  const other=random(living().filter(p=>p.id!==targetId&&p.id!==by));
+  if(!other)return false;
+  other.redPile.push(...target.redPile);
+  other.accusations+=target.accusations;
+  other.effects.push(...target.effects);
+  target.redPile=[];target.accusations=0;target.effects=[];
+  body=`${owner.name} تمام کارت‌های رو‌به‌روی ${target.name} را به ${other.name} منتقل کرد.`;
+  if(other.accusations>=7){
+   other.accusations=0;game.discard.push(...other.redPile);other.redPile=[];
+   game.pendingReveal=other.id;game.pendingRevealActor=by;
+  }
  }
- log(label,body);game.lastPublic=body;game.action='play';game.played++;
+ game.lastPublic=body;log('کارت بازی شد',body);
+ game.action='play';game.played++;
  if(!bot){chosenCard=null;chosenTarget=null;}
  render();
  if(game.pendingReveal!=null)requestTryalReveal(game.pendingReveal);
  return true;
 }
 function requestTryalReveal(id){
- const p=member(id);if(!p)return;const choices=p.tryals.map((t,i)=>({t,i})).filter(x=>!x.t.revealed);
- if(!choices.length){game.pendingReveal=null;return;}
- let cards=choices.map(({i})=>`<button class="tryal-mini secret" data-reveal-index="${i}"><b>Tryal ${i+1}</b></button>`).join('');
- showModal('هفت اتهام — افشای Tryal',`<div class="inset"><strong>${esc(p.name)} زیر اتهام است</strong><p>یک کارت پنهان انتخاب می‌شود. در نسخه نمایشی برای روان‌بودن، انتخاب نهایی توسط بازیکن انسانی انجام می‌گیرد؛ در بازی چندنفره اختیار طبق قوانین بین بازیکنان توزیع می‌شود.</p></div><div class="tryal-chooser">${cards}</div>`,[],false);
+ const p=member(id);if(!p||game?.pendingReveal!==id)return;
+ const choices=p.tryals.map((t,i)=>({t,i})).filter(x=>!x.t.revealed);
+ if(!choices.length){game.pendingReveal=null;game.pendingRevealActor=null;return;}
+ const actor=game.pendingRevealActor;
+ const finishSelection=idx=>{
+   if(game.pendingReveal!==id||!choices.some(x=>x.i===idx))return;
+   game.pendingReveal=null;game.pendingRevealActor=null;
+   revealTryal(p.id,idx,'accusation');
+   render();
+ };
+ if(actor!==0){
+   // The simulating opponent who played the seventh accusation selects.
+   finishSelection(random(choices).i);
+   return;
+ }
+ const cards=choices.map(({i})=>`<button class="tryal-mini secret" data-reveal-index="${i}"><b>Tryal ${i+1}</b></button>`).join('');
+ showModal('هفت اتهام — انتخاب بازیکن اتهام‌زننده',`<div class="inset"><strong>${esc(p.name)} زیر اتهام است</strong><p>شما اتهام هفتم را ثبت کرده‌ای. یکی از کارت‌های مخفی این بازیکن را برای افشا انتخاب کن. بقیه کارت‌ها محرمانه می‌مانند.</p></div><div class="tryal-chooser">${cards}</div>`,[],false);
  $$('#modalBody [data-reveal-index]').forEach(btn=>btn.addEventListener('click',()=>{
-  let idx=Number(btn.dataset.revealIndex);forceClose();revealTryal(p.id,idx,'accusation');game.pendingReveal=null;render();if(!game.winner&&game.current!==0)advanceTurn();
+  const idx=Number(btn.dataset.revealIndex);forceClose();finishSelection(idx);
  }));
 }
 function revealTryal(id,index,source='tryal'){
@@ -216,26 +261,30 @@ function revealTryal(id,index,source='tryal'){
  winCheck();
 }
 function eliminate(id,why){const p=member(id);if(!p?.alive)return;p.alive=false;p.tryals.forEach(t=>t.revealed=true);game.discard.push(...p.hand,...(p.redPile||[]),...p.effects);p.hand=[];p.redPile=[];p.effects=[];log('بازیکن حذف شد',`${p.name} به علت ${why} از بازی حذف شد.`);if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
-function drawTwo(by){
- const owner=member(by);if(!owner||!owner.alive||game.phase!=='turn')return;
- let pulled=[];
- for(let i=0;i<2;i++){
-  if(!game.deck.length){game.deck.push('night');}
-  let card=game.deck.shift();
+function drawTwo(by,count=2){
+ const owner=member(by);
+ if(!owner?.alive||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
+ let pulled=0;
+ for(let i=0;i<count;i++){
+  if(!game.deck.length)game.deck=['night'];
+  const key=game.deck.shift(),card=CARD[key];
   if(!card)break;
-  if(CARD[card].kind==='black'){
-    log('کارت سیاه کشیده شد',`${owner.name} کارت ${CARD[card].label} را رو کرد؛ اثر آن بلافاصله اجرا می‌شود.`);
-    game.lastPublic=`کارت ${CARD[card].label} از دسته بیرون آمد.`;
-    game.discard.push(card);
-    if(card==='conspiracy')beginConspiracy();else beginNight();
-    break;
+  if(card.kind==='black'){
+   game.pendingDraw={owner:by,remaining:count-i-1};
+   log('کارت سیاه کشیده شد',`${owner.name} کارت ${card.label} را رو کرد؛ اثر بلافاصله اجرا می‌شود.`);
+   game.lastPublic=`رویداد ویژه: ${card.label}`;
+   game.discard.push(key);
+   if(key==='conspiracy')beginConspiracy();else beginNight();
+   if(by===0)notice('رویداد کارت سیاه بلافاصله فعال شد.');
+   return true;
   }
-  owner.hand.push(card);pulled.push(card);
+  owner.hand.push(key);pulled++;
  }
- if(pulled.length)log('کشیدن کارت',`${owner.name} ${pulled.length} کارت به دستش اضافه کرد.`);
- if(by===0)notice(`${pulled.length} کارت کشیده شد${game.phase!=='turn'?' و رویداد ویژه آغاز شد':''}.`);
- chosenCard=null;chosenTarget=null;game.played=0;game.action='choose';render();
- if(game.phase==='turn')advanceTurn();
+ if(pulled)log('کشیدن کارت',`${owner.name} تعداد ${pulled} کارت کشید.`);
+ if(by===0)notice(`${pulled} کارت به دستت اضافه شد.`);
+ game.played=0;game.action='choose';chosenCard=null;chosenTarget=null;
+ render();advanceTurn();
+ return true;
 }
 function endTurn(){
  if(!isMyTurn()||game.played<1)return notice('برای پایان نوبت باید حداقل یک کارت بازی کرده باشی.');
@@ -269,19 +318,42 @@ function botMove(){if(!game||game.phase!=='turn'||game.current===0||game.pending
  advanceTurn();
 }
 function beginConspiracy(){
- game.phase='conspiracy';log('Conspiracy','بازماندگان کارت‌های Tryal مخفی خود را در گردش قرار می‌دهند.');
- const cats=member(game.blackCat);if(cats?.alive){let idx=cats.tryals.findIndex(t=>!t.revealed);if(idx>=0){revealTryal(cats.id,idx,'conspiracy');}}
- if(game.winner)return;
- let alive=living(); const offers=alive.map(p=>{
-   const opts=p.tryals.filter(t=>!t.revealed);if(!opts.length)return null;
-   const pick=random(opts);p.tryals.splice(p.tryals.indexOf(pick),1);return pick;
- });
- alive.forEach((p,i)=>{const incoming=offers[(i+1)%alive.length];if(incoming){p.tryals.push(incoming);if(incoming.type==='witch')p.witchEver=true;}});
- log('جابجایی Tryal','هر بازیکن زنده یک کارت مخفی از همسایه‌اش گرفت. تیم جادوگران ممکن است تغییر کرده باشد.');
- game.lastPublic='توطئه رخ داد: کارت‌های Tryal پنهان جابه‌جا شدند.';
- chosenCard=null;chosenTarget=null;render();
- const art=IMG.letter;
- showModal('توطئه در Salem',`<img class="modal-poster" src="${art}" alt=""><p>یک کارت Tryal پنهان از هر بازیکن زنده به همسایه منتقل شد. اطلاعات خصوصی خودت به‌روزرسانی شده است؛ هیچ‌کس نقش دیگری را از این رویداد متوجه نمی‌شود.</p><p class="inset">توجه: مکانیسم چرخش Tryal در این دمو خودکار است، اما نتیجه تغییر تیم جادوگران در منطق بازی ثبت می‌شود.</p>`,[{label:'ادامه نوبت‌ها',primary:true,fn:()=>{game.phase='turn';game.played=0;game.action='choose';advanceTurn();}}]);
+ game.phase='conspiracy';
+ log('Conspiracy','بازیکنان از همسایه خود کارت Tryal پنهان دریافت می‌کنند.');
+ chosenCard=null;chosenTarget=null;
+ const drawer=game.pendingDraw?.owner;
+ const revealBlackCat=idx=>{
+  const cat=member(game.blackCat);
+  if(cat?.alive&&idx!=null)revealTryal(cat.id,idx,'conspiracy');
+  if(game.winner)return;
+  const alive=living();
+  // Choose one concealed Tryal from each player simultaneously before moving.
+  const offers=alive.map(p=>{
+   const concealed=p.tryals.filter(t=>!t.revealed);
+   if(!concealed.length)return null;
+   const pick=random(concealed);p.tryals.splice(p.tryals.indexOf(pick),1);
+   return pick;
+  });
+  alive.forEach((p,i)=>{
+   const incoming=offers[(i+1)%alive.length];
+   if(incoming){
+    p.tryals.push(incoming);
+    if(incoming.type==='witch')p.witchEver=true;
+    // Constable ability is derived from current Tryal ownership.
+   }
+  });
+  game.lastPublic='توطئه: کارت‌های مخفی جابه‌جا شدند و ممکن است جادوگران جدیدی وجود داشته باشند.';
+  log('جابجایی Tryal','هر بازیکن یک کارت پنهان از همسایه‌اش گرفت.');
+  if(winCheck())return;
+  render();
+  showModal('توطئه در Salem',`<img class="modal-poster" src="${IMG.letter}" alt=""><p>Conspiracy اجرا شد. کارت‌های Tryal پنهان جابه‌جا شدند؛ تیم جادوگران ممکن است تغییر کرده باشد.</p><p class="inset">کارت‌های مخفی دیگران به شما نشان داده نمی‌شوند.</p>`,[{label:'ادامه بازی',primary:true,fn:nextAfterBlack}]);
+ };
+ const cat=member(game.blackCat);
+ const options=cat?.alive?cat.tryals.map((t,i)=>({t,i})).filter(x=>!x.t.revealed):[];
+ if(!options.length){revealBlackCat(null);return;}
+ if(drawer!==0){revealBlackCat(random(options).i);return;}
+ showModal('Conspiracy — انتخاب Tryal گربه سیاه',`<p>چون کارت سیاه را تو کشیدی، یکی از Tryalهای بازیکن دارای گربه سیاه (${esc(cat.name)}) را انتخاب کن.</p><div class="tryal-chooser">${options.map(({i})=>`<button class="tryal-mini secret" data-cat-trial="${i}"><b>Tryal ${i+1}</b></button>`).join('')}</div>`,[],false);
+ $$('#modalBody [data-cat-trial]').forEach(b=>b.addEventListener('click',()=>{const i=Number(b.dataset.catTrial);forceClose();revealBlackCat(i);}));
 }
 function nightRole(){const me=human();if(!me.alive)return 'town';if(me.witchEver)return 'witch';if(me.tryals.some(t=>t.type==='constable'&&!t.revealed))return 'constable';return 'town';}
 function beginNight(){
@@ -326,7 +398,7 @@ function resolveNight(){
  game.phase='turn';game.nightTargetUser=null;game.nightSelection=null;game.nightConfessed=false;
  const discard=game.discard.filter(x=>!['night','conspiracy'].includes(x));
  game.deck=shuffle([...game.deck.filter(x=>x!=='night'),...discard]);game.deck.push('night');game.discard=[];
- render();showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(report)}</p><p class="inset">کارت‌های دورریز برای دور بعد بازگردانده شدند. ترتیب نوبت‌های معمول ادامه پیدا می‌کند.</p>`,[{label:'بازگشت به بازی',primary:true,fn:()=>advanceTurn()}]);
+ render();showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(report)}</p><p class="inset">کارت‌های دورریز برای دور بعد بازگردانده شدند. ترتیب نوبت‌های معمول ادامه پیدا می‌کند.</p>`,[{label:'بازگشت به بازی',primary:true,fn:nextAfterBlack}]);
 }
 function handleAction(kind){
  if(kind==='draw'){if(isMyTurn()&&game.action==='choose')drawTwo(0);return;}
@@ -346,7 +418,7 @@ function instructions(){showModal('آموزش Salem 1692',`<div class="reveal-la
 function init(){
  $('#homeButton').addEventListener('click',showLobby);$('#helpButton').addEventListener('click',instructions);
  $('#playerCount').addEventListener('change',refreshLobby);$('#startGame').addEventListener('click',start);
- $('#resumeGame').addEventListener('click',()=>{game=read();if(game){token++;running=false;secretOpen=false;chosenCard=null;chosenTarget=null;if(game.phase==='conspiracy')game.phase='turn';showGame();if(game.phase==='turn'&&game.current!==0)queueBot();}else notice('فایلی برای ادامه یافت نشد.');});
+ $('#resumeGame').addEventListener('click',()=>{game=read();if(game){token++;running=false;secretOpen=false;chosenCard=null;chosenTarget=null;if(game.phase==='conspiracy'){game.phase='turn';game.pendingDraw=null;}showGame();if(game.phase==='turn'&&game.pendingReveal!=null)requestTryalReveal(game.pendingReveal);else if(game.phase==='turn'&&game.current!==0)queueBot();}else notice('فایلی برای ادامه یافت نشد.');});
  $('#toggleSecret').addEventListener('click',()=>{secretOpen=!secretOpen;render();});
  $('#turnActions').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handleAction(b.dataset.action);else if(e.target.id==='newGameAction')showLobby();});
  $('#myTryals').addEventListener('click',e=>{const b=e.target.closest('[data-my-trial]');if(b&&game?.phase==='night'&&game.nightSelection==='confess')completeConfession(Number(b.dataset.myTrial));});
@@ -359,6 +431,6 @@ function init(){
  refreshLobby();
 }
 // API تستی فقط برای کنترل دموی محلی، نه قرارداد یا امنیت سرور
-window.SalemDemo={getSnapshot:()=>game?{phase:game.phase,current:game.current,turn:game.turn,alive:living().length,deck:game.deck.length,witchProgress:dangerCount(),winner:game.winner}:null,debugAdvanceToNight:()=>{if(!game)return;token++;running=false;game.phase='night';beginNight();},debugConspiracy:()=>{if(!game)return;token++;running=false;beginConspiracy();}};
+window.SalemDemo={getSnapshot:()=>game?{phase:game.phase,current:game.current,turn:game.turn,alive:living().length,deck:game.deck.length,witchProgress:dangerCount(),winner:game.winner}:null};
 init();
 })();
