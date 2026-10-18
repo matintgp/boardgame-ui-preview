@@ -30,3 +30,9 @@
 #overlay:has(.townhall-draft) .modal-body{overflow:auto}
 @media(max-width:610px){.townhall-draft-grid{grid-template-columns:1fr;gap:12px}.townhall-card .townhall-art{aspect-ratio:16/9}.townhall-card h3{font-size:20px}.townhall-card .townhall-info{padding:13px}.townhall-card .townhall-power{min-height:auto}.townhall-card .btn{min-height:43px}}
 @media(prefers-reduced-motion:reduce){.townhall-card{transition:none}.townhall-card:hover{transform:none}}
+
+.townhall-deck-editor{max-height:50vh;overflow-y:auto;display:grid;gap:6px;background:#0a141e;border:1px solid #8b734f70;border-radius:13px;padding:9px;overscroll-behavior:contain}
+.townhall-deck-line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 9px;background:#152433;border:1px solid #ffffff11;border-radius:10px;font-size:11px}
+.townhall-deck-line>div{display:flex;gap:6px;flex-shrink:0}
+.townhall-deck-line .btn{min-height:32px;min-width:34px}
+@media(max-width:480px){.townhall-deck-line{font-size:10px}.townhall-deck-line .btn{padding:4px 8px}}
