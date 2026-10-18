@@ -433,7 +433,7 @@ function eliminate(id,why,fromMatchmaker=false){
 function drawTwo(by,count=2){
  const owner=member(by);
  if(!owner?.alive||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
- let pulled=0;
+ let pulled=0,drawnKeys=[];
  for(let i=0;i<count;i++){
   if(!game.deck.length)game.deck=['night'];
   const key=game.deck.shift(),card=CARD[key];
@@ -449,9 +449,13 @@ function drawTwo(by,count=2){
    if(by===0)notice('رویداد کارت سیاه بلافاصله فعال شد.');
    return true;
   }
-  owner.hand.push(key);pulled++;
+  owner.hand.push(key);drawnKeys.push(key);pulled++;
  }
  if(pulled)log('کشیدن کارت',`${owner.name} تعداد ${pulled} کارت کشید.`);
+ if(count===2&&drawnKeys.length===2&&drawnKeys.every(k=>k==='acc1')&&hasTown(owner,'giles')){
+  const added=bonusDraw(owner,1,{allowBlack:false});
+  if(added)log('توانایی جایلز',`${owner.name} با کشیدن دو Accusation یک کارت سوم هم برداشت.`);
+ }
  if(by===0)notice(`${pulled} کارت به دستت اضافه شد.`);
  game.played=0;game.action='choose';chosenCard=null;chosenTarget=null;
  render();advanceTurn();
