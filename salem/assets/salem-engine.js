@@ -57,7 +57,7 @@ function legalTarget(by,targetId,key){
 }
 function nextAfterBlack(){
  if(!game||game.winner)return;
- const pending=game.pendingDraw;game.pendingDraw=null;game.phase='turn';
+ const pending=game.pendingDraw;game.pendingDraw=null;game.phase='turn';game.turnEndsAt=Date.now()+60000;
  if(pending?.remaining>0&&member(pending.owner)?.alive&&game.current===pending.owner){drawTwo(pending.owner,pending.remaining);return;}
  advanceTurn();
 }
@@ -232,7 +232,7 @@ function render(){
  if(!game)return; const me=human();
  if(game.phase!==lastPhase){lastPhase=game.phase;document.body.dataset.salemPhase=game.phase;}
  document.documentElement.style.setProperty('--accent',game.phase==='night'?'#8db3e5':game.phase==='conspiracy'?'#d98a91':'#d5ae71');
- let owner=current();let phaseTitle={draft:'انتخاب شخصیت',reveal:'افشای نقش خصوصی',turn:'روز · نوبت بازیکنان',dawn:'شب آغازین · شهر در خواب',conspiracy:'توطئه در Salem',night:'شب جادوگران',finished:'پرونده بسته شد'}[game.phase];
+ let owner=current();let phaseTitle={draft:'انتخاب شخصیت',reveal:'افشای نقش خصوصی',turn:'روز · نوبت بازیکنان',dawn:'شب آغازین · شهر در خواب',conspiracy:'توطئه در Salem',night:'شب جادوگران','night-report':'در انتظار گزارش شب',finished:'پرونده بسته شد'}[game.phase];
  $('#roomLabel').textContent=game.room+' / '+(game.round||1);$('#statusTitle').textContent=game.winner? 'مسابقه تمام شد' : game.phase==='turn'?(game.current===0?'نوبت شماست':`نوبت ${owner?.name||'رقیب'}`):phaseTitle;
  $('#statusSubtitle').textContent=game.phase==='turn'?(game.current===0?(game.action==='play'?'حداقل یک کارت بازی کن؛ سپس می‌توانی نوبت را تمام کنی.':'دو کارت بکش یا یک کارت بازی کن.'):'بازیکن شبیه‌سازی‌شده در حال تصمیم‌گیری است.'):game.lastPublic;
  $('#turnBadge').textContent=`نوبت ${game.turn}`;$('#phaseBadge').textContent=phaseTitle;$('#aliveBadge').textContent=`${living().length} نفر زنده`;
@@ -460,7 +460,9 @@ function eliminate(id,why,fromMatchmaker=false){
   const partner=living().find(q=>q.effects.includes('matchmaker')&&!hasTown(q,'mary'));
   if(partner)eliminate(partner.id,'پیوند Matchmaker',true);
  }
- if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
+ if(game.blackCat===id){game.discard.push('blackcat');game.blackCat=null;}
+ if(living().length<=2&&game.blackCat!=null){game.discard.push('blackcat');game.blackCat=null;}
+ if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
 function drawTwo(by,count=2){
  const owner=member(by);
  if(!owner?.alive||!game.dawnCompleted||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
@@ -542,6 +544,7 @@ function botMove(){if(!game||game.phase!=='turn'||game.current===0||game.pending
  advanceTurn();
 }
 function beginConspiracy(){
+ game.turnEndsAt=null;
  game.phase='conspiracy';
  log('Conspiracy','بازیکنان از همسایه خود کارت Tryal پنهان دریافت می‌کنند.');
  chosenCard=null;chosenTarget=null;
@@ -581,6 +584,7 @@ function beginConspiracy(){
 }
 function nightRole(){const me=human();if(!me.alive)return 'town';if(me.witchEver)return 'witch';if(me.tryals.some(t=>t.type==='constable'&&!t.revealed))return 'constable';return 'town';}
 function beginNight(){
+ game.turnEndsAt=null;
  game.phase='night';game.nightConfessed=false;game.nightTargetUser=null;
  const witches=living().filter(p=>p.witchEver);const towns=living().filter(p=>!p.witchEver);
  game.nightTarget=random(towns.length?towns:living())?.id??null;
@@ -619,7 +623,7 @@ function resolveNight(){
  }
  log('طلوع روز',report);game.lastPublic=report;
  if(game.winner)return;
- game.phase='turn';game.nightTargetUser=null;game.nightSelection=null;game.nightConfessed=false;
+ game.phase='night-report';game.nightTargetUser=null;game.nightSelection=null;game.nightConfessed=false;
  // Both Conspiracy and normal discards re-enter the deck after Night.
  const discard=game.discard.filter(x=>x!=='night');
  game.deck=shuffle([...game.deck.filter(x=>x!=='night'),...discard]);game.deck.push('night');game.discard=[];
