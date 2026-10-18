@@ -164,15 +164,41 @@ function effect(kind,data={}){
 }
 function onSelected(key){selected=key;}
 function catalog(definitions){cardDict=definitions||{};}
-function endgame(s){
- const logs=(s?.logs||[]).slice(0,35);
- const players=s?.players||[];
- const text=s?.winner==='town'?'شهر پیروز شد':'جادوگران پیروز شدند';
- const cards='<div class="sx-end-players">'+players.map(p=>'<article class="sx-end-player"><img src="'+esc(p.portrait)+'" alt=""><div><strong>'+esc(p.name)+'</strong><small>'+esc(p.character)+'</small><span>'+(p.witchEver?'تیم جادوگران':'تیم شهر')+'</span></div></article>').join('')+'</div>';
- const history='<details class="sx-history"><summary>مرور '+logs.length+' رویداد مهم مسابقه</summary>'+logs.map(x=>'<div><strong>'+esc(x.title)+'</strong><p>'+esc(x.message)+'</p></div>').join('')+'</details>';
- return '<div class="sx-end"><span class="sx-eyebrow">MATCH COMPLETE</span><h3>'+text+'</h3><div class="sx-end-stats"><b>'+Number(s.turn||0)+' نوبت</b><b>'+players.filter(p=>p.alive).length+' بازمانده</b><b>'+Number(s.totalWitches||0)+' کارت Witch</b></div>'+cards+history+'<p class="sx-muted">نقش‌ها فقط پس از پایان مسابقه نشان داده شده‌اند. این خلاصه از شبیه‌سازی مرورگر ساخته می‌شود.</p></div>';
+let lastReplay=null;
+function endgame(game){
+ const players=game?.players||[],logs=(game?.logs||[]).slice(0,100);
+ lastReplay={winner:game?.winner,room:game?.room,events:[...logs].reverse().map((event,i)=>({number:i+1,title:String(event.title||''),message:String(event.message||'')}))};
+ const result=game?.winner==='town'?'شهروندان':'جادوگران';
+ const cards='<div class="sx-end-players">'+players.map(p=>'<article class="sx-end-player"><img loading="lazy" src="'+esc(p.portrait)+'" alt=""><div><strong>'+esc(p.name)+'</strong><small>'+esc(p.character)+'</small><span>'+(p.witchEver?'تیم جادوگران':'تیم شهر')+'</span></div></article>').join('')+'</div>';
+ return '<div class="sx-end"><span class="sx-eyebrow">MATCH COMPLETE · CASE CLOSED</span><h3>پیروزی '+result+'</h3><p class="sx-muted">در پایان مسابقه می‌توانی رویدادهای عمومی و نقش‌های افشاشده را مرور کنی.</p><div class="sx-end-stats"><b>'+Number(game.turn||0)+' نوبت</b><b>'+players.filter(p=>p.alive).length+' بازمانده</b><b>'+Number(game.totalWitches||0)+' Witch</b></div>'+cards+'<div class="sx-end-actions"><button class="btn primary" data-sx-replay>بازپخش مرحله‌ای</button><button class="btn outline" data-sx-copy>کپی خلاصه</button></div></div>';
 }
-window.SalemExperience=Object.freeze({load,update,settings,guide,tutorial,inspect,effect,onSelected,catalog,endgame,close,upcoming,getPrefs:()=>({...prefs})});
+function replay(){
+ if(!lastReplay)return;
+ const events=lastReplay.events;let current=0;
+ function paint(container){
+  const e=events[current];
+  container.innerHTML='<div class="sx-replay"><span class="sx-eyebrow">CASE REPLAY</span><strong class="sx-replay-counter">'+(events.length?current+1:0)+' / '+events.length+'</strong>'+
+  (e?'<article class="sx-replay-scene"><span class="sx-replay-mark">✦</span><h3>'+esc(e.title)+'</h3><p>'+esc(e.message)+'</p></article>':'<p>رویدادی ثبت نشده.</p>')+
+  '<div class="sx-replay-controls"><button class="btn outline" data-sx-prev '+(current===0?'disabled':'')+'>مرحله قبل</button><button class="btn primary" data-sx-next '+(current>=events.length-1?'disabled':'')+'>مرحله بعد</button><button class="btn ghost" data-sx-done>پایان</button></div></div>';
+  container.querySelector('[data-sx-prev]').addEventListener('click',()=>{current=Math.max(0,current-1);paint(container);});
+  container.querySelector('[data-sx-next]').addEventListener('click',()=>{current=Math.min(events.length-1,current+1);paint(container);});
+  container.querySelector('[data-sx-done]').addEventListener('click',close);
+ }
+ open('بازپخش رویدادها','<div id="sxReplayView"></div>',body=>paint(body.querySelector('#sxReplayView')));
+}
+function copyReplay(){
+ if(!lastReplay)return;
+ const text='Salem 1692 | '+(lastReplay.room||'')+'\n'+(lastReplay.winner==='town'?'پیروزی شهر':'پیروزی جادوگران')+'\n'+lastReplay.events.map(e=>e.number+'. '+e.title+' — '+e.message).join('\n');
+ if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).catch(()=>{});
+}
+document.addEventListener('click',e=>{
+ const replayButton=e.target.closest('[data-sx-replay]');
+ const copy=e.target.closest('[data-sx-copy]');
+ if(replayButton)replay();
+ if(copy)copyReplay();
+});
+
+window.SalemExperience=Object.freeze({load,update,settings,guide,tutorial,inspect,effect,onSelected,catalog,endgame,replay,close,upcoming,getPrefs:()=>({...prefs})});
 function start(){load();$('#inspectCardButton')?.addEventListener('click',()=>selected?inspect(selected):guide());$('#experienceSettingsButton')?.addEventListener('click',settings);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
