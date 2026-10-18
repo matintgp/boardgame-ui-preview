@@ -153,7 +153,7 @@ function beginFirstDawn(){
 function resumeFirstDawn(){window.SalemDawn?.resume(game,dawnCallbacks());}
 function turnExpired(){
  if(!game||game.phase!=='turn'||game.winner||game.pendingReveal!=null)return;
- if(game.current===0){if(game.played===0){window.SalemTurn?.drawn();drawTwo(0);}else endTurn();}
+ if(game.current===0){if(game.played===0)drawTwo(0);else endTurn();}
  else if(game.played===0)drawTwo(game.current);else advanceTurn();
 }
 function revealTownIntro(){
@@ -495,7 +495,7 @@ function drawTwo(by,count=2){
 }
 function endTurn(){
  if(!isMyTurn())return;
- if(game.played===0){window.SalemTurn?.drawn();drawTwo(0);return;}
+ if(game.played===0){drawTwo(0);return;}
  log('پایان نوبت',`شما بعد از بازی ${game.played} کارت، نوبت را تمام کردید.`);advanceTurn();
 }
 function advanceTurn(){
