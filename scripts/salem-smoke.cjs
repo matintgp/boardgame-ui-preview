@@ -22,6 +22,9 @@ function setup(size=6, role='town') {
     pretendToBeVisual:true
   });
   dom.window.scrollTo = () => {};
+  // Prevent asynchronous simulated bot timers surviving the jsdom instance in unit tests.
+  dom.window.setTimeout = () => 0;
+  dom.window.clearTimeout = () => {};
   dom.window.eval(townHallSource);
   dom.window.eval(source);
   const doc=dom.window.document;
