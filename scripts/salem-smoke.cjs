@@ -35,6 +35,7 @@ function setup(size=6, role='town') {
   assert.ok(qa.state());
   // Existing generic gameplay tests must be independent of the newly random Town Hall draft.
   const state=qa.state();
+  state.__qaTownHallChoice=state.players[0].townHallId;
   state.current=0;
   state.players[0].townHallId='giles';
   state.players[0].character='Giles Corey';
@@ -245,7 +246,7 @@ test('Town Hall selection burns the unchosen public ability and cannot be used t
  assert.equal(state.burnedTownHall.length,9);
  assert.equal(state.players.filter(p=>p.townHallId!=null).length,6);
  assert.equal(new Set(state.players.map(p=>p.townHallId)).size,6);
- assert.equal(state.burnedTownHall.includes(state.players[0].townHallId),false);
+ assert.equal(state.burnedTownHall.includes(state.__qaTownHallChoice),false);
  dom.window.close();
 });
 
