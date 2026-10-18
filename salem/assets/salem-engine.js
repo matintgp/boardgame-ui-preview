@@ -218,7 +218,13 @@ function winCheck(){
  if(living().length>0 && living().every(p=>p.witchEver)){finish('witch');return true;}
  return false;
 }
-function finish(w){game.phase='finished';game.winner=w;running=false;log('پایان مسابقه',w==='town'?'شهر همه کارت‌های Witch را پیدا کرد.':'جادوگران بر بازماندگان شهر غلبه کردند.');save();render();showModal('پایان پرونده',`<img class="modal-poster" src="${w==='town'?IMG.gavel:IMG.witch}" alt=""><p>${w==='town'?'شهروندان پیروز شدند. همه کارت‌های Witch افشا شده‌اند.':'جادوگران پیروز شدند. هیچ شهروندی در بازی باقی نمانده است.'}</p><div class="inset"><strong>خلاصه مسابقه</strong><p>${game.turn} نوبت · ${living().length} بازمانده · ${dangerCount()} / ${game.totalWitches} کارت Witch افشاشده</p></div>`,[{label:'ساخت مسابقه جدید',primary:true,fn:()=>{showLobby();}}]);}
+function finish(w){
+ game.phase='finished';game.winner=w;running=false;
+ log('پایان مسابقه',w==='town'?'شهر همه کارت‌های Witch را پیدا کرد.':'جادوگران بر بازماندگان شهر غلبه کردند.');
+ save();render();window.SalemExperience?.effect('victory');
+ const recap=window.SalemExperience?.endgame(game)||'<p>پرونده به پایان رسید.</p>';
+ showModal('پایان پرونده',recap,[{label:'ساخت مسابقه جدید',primary:true,fn:()=>showLobby()}]);
+}
 function chooseTarget(id){
  if(!game||game.winner)return;
  const p=member(id);if(!p?.alive)return;
@@ -249,6 +255,7 @@ function render(){
  $('#selectedTarget').textContent=chosenTarget!=null?`هدف: ${esc(member(chosenTarget)?.name)}`:'برای انتخاب هدف روی بازیکن بزن';
  $('#boardDescription').textContent=game.phase==='night'?'شب روی شهر افتاده است. نقش‌های ویژه برای هدف‌گیری فعال‌اند.':game.pendingReveal!=null?'۷ اتهام ثبت شد؛ یک Tryal پنهان را افشا کن.':'روی تصویر بازیکن هدف کلیک کن؛ کارت‌های مخفی دیگران قابل مشاهده نیستند.';
  renderBoard();renderHand();renderTimeline();renderLogs();renderDock();save();window.SalemTurn?.sync(game,turnExpired);
+ window.SalemExperience?.update({phase:game.phase,turn:game.turn,current:game.current,players:game.players.map(p=>({id:p.id,name:p.name,portrait:p.portrait,alive:p.alive})),winner:game.winner});
 }
 function turnButtons(){
  if(game.phase==='finished')return '<div class="primary-description">مسابقه به پایان رسیده است.</div><button class="btn primary" id="newGameAction">بازی جدید</button>';
@@ -280,6 +287,8 @@ function renderBoard(){
 }
 function renderHand(){
  let cards=human().hand;$('#handCount').textContent=`${cards.length} کارت`;
+ window.SalemExperience?.catalog(CARD);
+ window.SalemExperience?.onSelected(chosenCard==null?null:cards[chosenCard]);
  $('#handCards').innerHTML=cards.length?cards.map((k,i)=>{const c=CARD[k];return `<button class="action-card ${chosenCard===i?'selected':''}" data-hand="${i}" ${!isMyTurn()?'disabled':''}><img src="${c.image}" alt=""><div class="action-card-content"><b>${esc(c.label)}</b><small>${esc(c.help)}</small><span class="kind">${{red:'اتهام',green:'سبز',blue:'آبی'}[c.kind]||'ویژه'}</span></div></button>`;}).join(''):'<p class="aside-caption">کارت دستت تمام شده؛ در نوبت بعد دو کارت بکش.</p>';
  $$('#handCards [data-hand]').forEach(b=>b.addEventListener('click',()=>{chosenCard=Number(b.dataset.hand);render();}));
 }
@@ -405,6 +414,7 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null,alibiMode=n
   }
  }
  game.lastPublic=body;log('کارت بازی شد',body);
+ if(!bot)window.SalemExperience?.effect('card',{label:card.label});
  game.action='play';game.played++;
  if(!bot){chosenCard=null;chosenTarget=null;}
  render();
@@ -443,6 +453,7 @@ function revealTryal(id,index,source='tryal'){
   }
  }log('کارت Tryal افشا شد',`یک کارت ${TRIALS[t.type].label} از ${p.name} رو شد.`);
  game.lastPublic=`Tryal ${p.name} افشا شد: ${TRIALS[t.type].label}`;
+ window.SalemExperience?.effect('reveal',{label:`Tryal ${p.name} · ${TRIALS[t.type].label}`});
  if(t.type==='witch'||p.tryals.every(x=>x.revealed))eliminate(id,t.type==='witch'?'افشای کارت Witch':'افشای تمام Tryalها');
  winCheck();
 }
