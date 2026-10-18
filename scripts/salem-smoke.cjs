@@ -11,7 +11,7 @@ const townHallSource=fs.readFileSync(path.join(base,'assets/town-hall.js'),'utf8
 // Test-only instrumentation, NEVER committed to the game bundle.
 const source = raw.replace(
   'window.SalemDemo=',
-  'window.__SalemQA={state:()=>game,render,drawTwo,playCard,advanceTurn};window.SalemDemo='
+  'window.__SalemQA={state:()=>game,render,drawTwo,playCard,advanceTurn,revealTryal,eliminate,legalTarget,accuseLimit,activateTownHall,freePhipsConfess};window.SalemDemo='
 );
 assert.notEqual(source, raw, 'test instrumentation injection point');
 
@@ -211,4 +211,106 @@ test('Salem uses the shared Persian typography with self-hosted variable font fi
    assert.equal(buff.subarray(0,4).toString('ascii'),'wOF2','font file signature '+file);
  }
  assert.ok(fs.statSync(path.join(base,'assets/fonts/OFL.txt')).size>1000,'font license must be included');
+});
+
+
+test('Town Hall catalogue has all fifteen unique documented character cards',()=>{
+ const {dom}=setup(6);
+ const all=dom.window.SalemTownHall.all;
+ assert.equal(all.length,15);
+ assert.equal(new Set(all.map(x=>x.id)).size,15);
+ for(const name of ['abigail','ann','cotton','giles','george','john','martha','mary','rebecca','samuel','sarah','thomas','tituba','will','william']){
+  assert.ok(dom.window.SalemTownHall.byId[name]?.description);
+ }
+ for(const n of [4,5,6,7,8,9,10]){
+  const dealt=dom.window.SalemTownHall.deal(n);
+  assert.equal(dealt.offered,n<=7?2:1);
+  assert.equal(dealt.hands.length,n);
+  assert.equal(dealt.hands.every(h=>h.length===dealt.offered),true);
+  const dealtIds=dealt.hands.flat();
+  assert.equal(new Set(dealtIds).size,dealtIds.length);
+  assert.equal(dealt.unused.length+dealtIds.length,15);
+ }
+ dom.window.close();
+});
+
+test('Town Hall selection burns the unchosen public ability and cannot be used twice',()=>{
+ const {dom,qa}=setup(6);
+ const state=qa.state();
+ assert.equal(state.townHallPending,false);
+ assert.equal(state.townHallOffers.length,0);
+ assert.equal(state.burnedTownHall.length,9);
+ assert.equal(state.players.filter(p=>p.townHallId!=null).length,6);
+ assert.equal(new Set(state.players.map(p=>p.townHallId)).size,6);
+ assert.equal(state.burnedTownHall.includes(state.players[0].townHallId),false);
+ dom.window.close();
+});
+
+test('George needs eight accusations, Cotton weakens Evidence and Thomas needs six',()=>{
+ const {dom,qa,doc}=setup(6);
+ click(doc,'#modalBody .modal-actions button');
+ let s=qa.state(), me=s.players[0],victim=s.players[1];
+ victim.townHallId='george';victim.accusations=6;victim.redPile=Array(6).fill('acc1');
+ me.hand=['acc1'];
+ assert.equal(qa.playCard(0,0,1,false),true);
+ assert.equal(victim.accusations,7);
+ assert.equal(s.pendingReveal,null);
+ victim.townHallId='cotton';victim.accusations=0;victim.redPile=[];
+ me.hand=['acc3'];
+ assert.equal(qa.playCard(0,0,1,false),true);
+ assert.equal(victim.accusations,1);
+ me.townHallId='thomas';victim.townHallId='george';victim.accusations=5;
+ victim.redPile=Array(5).fill('acc1');me.hand=['acc1'];
+ assert.equal(qa.playCard(0,0,1,false),true);
+ assert.equal(s.pendingReveal,null,'George still needs seven against Thomas');
+ victim.townHallId='cotton';victim.accusations=5;victim.redPile=Array(5).fill('acc1');
+ me.hand=['acc1'];assert.equal(qa.playCard(0,0,1,false),true);
+ assert.equal(s.pendingReveal,1,'Thomas reveals an ordinary player at six');
+ dom.window.close();
+});
+
+test('Mary cannot be targeted by simulated Matchmaker, Sarah resists Arson and Robbery',()=>{
+ const {dom,qa}=setup(); const s=qa.state();
+ const other=s.players[1];
+ other.townHallId='mary';
+ assert.equal(qa.legalTarget(0,1,'matchmaker'),false);
+ other.townHallId='sarah';
+ assert.equal(qa.legalTarget(0,1,'robbery'),false);
+ assert.equal(qa.legalTarget(0,1,'arson'),false);
+ dom.window.close();
+});
+
+test('William free confession consumes one use without revealing a Tryal',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const s=qa.state(), me=s.players[0];
+ me.townHallId='william';me.abilityUses={};
+ s.phase='night';s.nightSelection=null;s.nightConfessed=false;
+ const previously=me.tryals.filter(t=>t.revealed).length;
+ qa.freePhipsConfess();
+ assert.equal(s.nightConfessed,true);
+ assert.equal(me.tryals.filter(t=>t.revealed).length,previously);
+ assert.equal(me.abilityUses.william,0);
+ qa.freePhipsConfess();assert.equal(me.abilityUses.william,0);
+ dom.window.close();
+});
+
+test('shared custom dropdown preserves native select change and keyboard controls',()=>{
+ const {JSDOM}=require('jsdom');
+ const dom=new JSDOM('<!doctype html><html lang="fa"><body><label>افراد<select id="persons"><option value="4">۴ نفر</option><option value="6">۶ نفر</option><option value="8">۸ نفر</option></select></label></body></html>',{runScripts:'outside-only',url:'https://example.test/'});
+ const doc=dom.window.document;
+ dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
+ const component=fs.readFileSync(path.join(base,'../assets/bg-select.js'),'utf8');
+ dom.window.eval(component);
+ doc.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+ const trigger=doc.querySelector('.bg-select-trigger');
+ assert.ok(trigger);
+ trigger.click();
+ const option=doc.querySelector('[data-index="1"]');assert.ok(option);
+ let fired=0;doc.getElementById('persons').addEventListener('change',()=>fired++);
+ option.click();
+ assert.equal(doc.getElementById('persons').value,'6');
+ assert.equal(fired,1);
+ assert.equal(trigger.getAttribute('aria-expanded'),'false');
+ dom.window.close();
 });
