@@ -717,6 +717,14 @@ function init(){
  $('#resetButton').addEventListener('click',()=>{forceClose();showLobby();});
  $('#closeModal').addEventListener('click',forceClose);
  $('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&!$('#closeModal').hidden)forceClose();});
+ $('#overlay').addEventListener('keydown',e=>{
+  if(e.key!=='Tab'||$('#overlay').hidden)return;
+  const controls=[...$('#overlay').querySelectorAll('button:not([disabled])')].filter(b=>!b.hidden&&b.getClientRects().length);
+  if(!controls.length){e.preventDefault();return;}
+  const first=controls[0],last=controls[controls.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+ });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#overlay').hidden&&!$('#closeModal').hidden)forceClose();});
  refreshLobby();
 }
