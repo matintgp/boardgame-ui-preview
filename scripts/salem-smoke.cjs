@@ -135,7 +135,7 @@ test('night resolution returns from a black event to the current turn progressio
  click(doc,'[data-action="draw"]');
  assert.equal(s.phase,'night');
  assert.equal(s.pendingDraw.remaining,1);
- s.nightTarget=1;s.nightProtect=2;
+ s.nightTarget=1;s.nightProtect=1; // explicitly prevent night elimination so this test isolates interruption/resume
  // Isolate the continuation case from random cards reshuffled from previous discards.
  s.discard=[];
  if(s.nightSelection==='protect')click(doc,'[data-seat="1"]');
