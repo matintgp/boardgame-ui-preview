@@ -141,8 +141,10 @@ test('night resolution returns from a black event to the current turn progressio
  if(s.nightSelection==='protect')click(doc,'[data-seat="1"]');
  if(s.nightSelection==='attack')click(doc,'[data-seat="1"]');
  click(doc,'[data-action="night-done"]');
- assert.equal(s.phase,'turn');
+ assert.equal(s.phase,'night-report');
+ assert.equal(s.turnEndsAt,null);
  click(doc,'#modalBody .modal-actions button');
+ assert.equal(s.phase,'turn');
  assert.equal(s.pendingDraw,null);
  assert.equal(s.players[0].hand.includes('acc2'),true);
  dom.window.close();
