@@ -627,9 +627,14 @@ function resolveNight(){
  // Both Conspiracy and normal discards re-enter the deck after Night.
  const discard=game.discard.filter(x=>x!=='night');
  game.deck=shuffle([...game.deck.filter(x=>x!=='night'),...discard]);game.deck.push('night');game.discard=[];
- render();showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(report)}</p><p class="inset">کارت‌های دورریز برای دور بعد بازگردانده شدند. ترتیب نوبت‌های معمول ادامه پیدا می‌کند.</p>`,[{label:'بازگشت به بازی',primary:true,fn:nextAfterBlack}]);
+ game.nightReport=report;
+ render();showNightReportModal();
 }
 
+function showNightReportModal(){
+ if(!game||game.phase!=='night-report')return;
+ showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(game.nightReport||'شهر بیدار شد.')}</p><p class="inset">رویداد شب تمام شده و تایمر بازیکن بعد از تأیید گزارش آغاز می‌شود.</p>`,[{label:'بازگشت به بازی',primary:true,fn:nextAfterBlack}]);
+}
 function activateTownHall(){
  const me=human();
  if(!abilityUsable(me))return notice('این قابلیت الآن قابل فعال‌کردن نیست.');
@@ -700,7 +705,7 @@ function instructions(){showModal('آموزش Salem 1692',`<div class="reveal-la
 function init(){
  $('#homeButton').addEventListener('click',showLobby);$('#helpButton').addEventListener('click',instructions);
  $('#playerCount').addEventListener('change',refreshLobby);$('#startGame').addEventListener('click',start);
- $('#resumeGame').addEventListener('click',()=>{game=read();if(game){token++;running=false;secretOpen=false;chosenCard=null;chosenTarget=null;if(game.phase==='conspiracy'){game.phase='turn';game.pendingDraw=null;}showGame();if(game.townHallPending){beginTownHallDraft();return;}if(game.phase==='dawn'){resumeFirstDawn();return;}if(!game.dawnCompleted&&game.phase==='turn'){revealTownIntro();return;}if(game.phase==='turn'&&game.pendingReveal!=null)requestTryalReveal(game.pendingReveal);else if(game.phase==='turn'&&game.current!==0)queueBot();}else notice('فایلی برای ادامه یافت نشد.');});
+ $('#resumeGame').addEventListener('click',()=>{game=read();if(game){token++;running=false;secretOpen=false;chosenCard=null;chosenTarget=null;if(game.phase==='conspiracy'){game.phase='turn';game.pendingDraw=null;}showGame();if(game.townHallPending){beginTownHallDraft();return;}if(game.phase==='dawn'){resumeFirstDawn();return;}if(game.phase==='night-report'){showNightReportModal();return;}if(!game.dawnCompleted&&game.phase==='turn'){revealTownIntro();return;}if(game.phase==='turn'&&game.pendingReveal!=null)requestTryalReveal(game.pendingReveal);else if(game.phase==='turn'&&game.current!==0)queueBot();}else notice('فایلی برای ادامه یافت نشد.');});
  $('#toggleSecret').addEventListener('click',()=>{secretOpen=!secretOpen;render();});
  $('#myIdentity').addEventListener('click',e=>{if(e.target.closest('[data-townhall-activate]'))activateTownHall();});
  $('#turnActions').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handleAction(b.dataset.action);else if(e.target.id==='newGameAction')showLobby();});
