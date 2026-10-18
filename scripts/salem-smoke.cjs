@@ -516,3 +516,50 @@ test('Salem Experience is included on the live page with responsive and reduced-
  assert.match(css,/sx-hud/);
  assert.match(css,/sx-guide-grid/);
 });
+
+
+test('searchable Salem rulebook supports role filters and never renders opponent secrets',()=>{
+ const {dom,doc,qa}=setup();
+ dom.window.eval(fs.readFileSync(path.join(base,'assets/salem-experience.js'),'utf8'));
+ doc.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+ const exp=dom.window.SalemExperience;
+ exp.catalog({acc1:{kind:'red',label:'اتهام',image:'assets/gavel_of_judgment_in_candlelit_salem.webp',help:'اتهام یک'}});
+ exp.guide();
+ const search=doc.querySelector('#sxLibrarySearch');
+ assert.ok(search);
+ assert.equal(doc.querySelectorAll('[data-guide-role]').length,15);
+ search.value='مری';
+ search.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ assert.equal(doc.querySelectorAll('[data-guide-role]').length,1);
+ assert.equal(doc.querySelectorAll('[data-guide-card]').length,0);
+ doc.querySelector('[data-sx-filter="red"]').click();
+ search.value='';
+ search.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ assert.equal(doc.querySelectorAll('[data-guide-card]').length,1);
+ assert.equal(doc.querySelectorAll('[data-guide-role]').length,0);
+ assert.equal(doc.querySelector('#sxBody').textContent.includes('tryals'),false);
+ exp.close();dom.window.close();
+});
+
+test('Salem completed game replay navigates only public events and new visual preferences save',()=>{
+ const {dom,doc,qa}=setup();
+ dom.window.eval(fs.readFileSync(path.join(base,'assets/salem-experience.js'),'utf8'));
+ doc.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+ const exp=dom.window.SalemExperience;
+ exp.settings();
+ const large=doc.querySelector('[data-sx-setting="largeText"]');
+ assert.ok(large);large.checked=true;large.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+ assert.equal(doc.body.dataset.sxLargeText,'yes');
+ exp.close();
+ const game=qa.state();
+ game.logs=[{title:'رویداد نخست',message:'شروع روز'},{title:'رویداد دوم',message:'کارت اتهام'}];
+ const summary=exp.endgame({...game,winner:'town'});
+ assert.match(summary,/data-sx-replay/);
+ doc.getElementById('modalBody').innerHTML=summary;
+ doc.querySelector('[data-sx-replay]').click();
+ assert.match(doc.querySelector('#sxReplayView').textContent,/رویداد نخست/);
+ doc.querySelector('[data-sx-next]').click();
+ assert.match(doc.querySelector('#sxReplayView').textContent,/رویداد دوم/);
+ assert.equal(doc.querySelector('[data-sx-next]').disabled,true);
+ exp.close();dom.window.close();
+});
