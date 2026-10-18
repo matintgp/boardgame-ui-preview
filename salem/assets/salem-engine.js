@@ -32,7 +32,7 @@ const sequence=['turn','conspiracy','night','finished'];
 const SET_KEY='boardgame.salem.v5';
 // The offline simulator is NOT authoritative: hidden cards in localStorage are inspectable.
 // A real match must send only per-player projections and validate all commands on the server.
-let game=null, secretOpen=false, chosenCard=null, chosenTarget=null, rapid=false, running=false, token=0, toastTimer=null, modalAction=null, lastPhase=null;
+let game=null, secretOpen=false, chosenCard=null, chosenTarget=null, rapid=false, running=false, token=0, toastTimer=null, modalAction=null, lastPhase=null, modalReturnFocus=null;
 function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
 function random(a){return a[Math.floor(Math.random()*a.length)];}
@@ -63,14 +63,16 @@ function nextAfterBlack(){
 }
 function notice(s){const t=$('#toast');t.textContent=s;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,2600);}
 function showModal(title,html,actions=[],closable=false){
+  if($('#overlay').hidden)modalReturnFocus=document.activeElement;
   modalAction=null;$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;
   $('#closeModal').hidden=!closable;$('#overlay').hidden=false;
   const footer=document.createElement('div');footer.className='modal-actions';
   actions.forEach(({label,fn,primary})=>{const b=document.createElement('button');b.type='button';b.className='btn '+(primary?'primary':'outline');b.textContent=label;b.addEventListener('click',()=>{closeModal();fn?.();});footer.append(b);});
   if(actions.length)$('#modalBody').append(footer);
+  queueMicrotask(()=>{if(!$('#overlay').hidden){const next=$('#modalBody button:not([disabled])')||(!$('#closeModal').hidden?$('#closeModal'):null);next?.focus({preventScroll:true});}});
 }
-function closeModal(){ $('#overlay').hidden=true;$('#closeModal').hidden=false; }
-function forceClose(){ $('#overlay').hidden=true;$('#closeModal').hidden=false; }
+function closeModal(){ $('#overlay').hidden=true;$('#closeModal').hidden=false;const previous=modalReturnFocus;modalReturnFocus=null;if(previous?.isConnected)previous.focus({preventScroll:true}); }
+function forceClose(){ closeModal(); }
 function showLobby(){window.SalemDawn?.stop();window.SalemTurn?.stop();window.SalemAudio?.stop();token++;running=false;$('#gamePage').hidden=true;$('#lobbyPage').hidden=false;refreshLobby();window.scrollTo(0,0);}
 function showGame(){ $('#lobbyPage').hidden=true;$('#gamePage').hidden=false;render();window.scrollTo(0,0); }
 function refreshLobby(){let n=Number($('#playerCount').value)||6;$('#seatCount').textContent=`${n} جایگاه`;$('#lobbySeats').innerHTML=cast.slice(0,n).map((v,i)=>`<div class="lobby-seat"><img src="${P}${v[2]}.webp" alt=""><div><b>${esc(v[0])}</b><small>${i?'بازیکن نمایشی':'میزبان · شما'}</small></div></div>`).join('');$('#resumeGame').hidden=!read();}
