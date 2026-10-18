@@ -1,0 +1,46 @@
+name: Salem — browser UI/UX QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'salem/**'
+      - 'scripts/salem-browser-audit.cjs'
+      - '.github/workflows/salem-browser-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salem-browser-qa
+  cancel-in-progress: true
+
+jobs:
+  browser-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser automation runtime
+        run: |
+          npm install --prefix /tmp/salem-browser-test --no-audit --no-fund --no-save playwright@1.56.1
+          /tmp/salem-browser-test/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start static Salem server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/salem-http.log 2>&1 &
+          for n in {1..30}; do curl -fsS http://127.0.0.1:4173/salem/index.html > /dev/null && break; sleep .2; done
+      - name: Run full three-viewport browser audit
+        env:
+          NODE_PATH: /tmp/salem-browser-test/node_modules
+        run: node scripts/salem-browser-audit.cjs
+      - name: Save QA screenshots (all results)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: salem-ui-audit-screenshots
+          path: screenshots/salem-qa/
+          retention-days: 7
+          if-no-files-found: warn
