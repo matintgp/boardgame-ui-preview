@@ -552,7 +552,7 @@ test('Salem completed game replay navigates only public events and new visual pr
  assert.equal(doc.body.dataset.sxLargeText,'yes');
  exp.close();
  const game=qa.state();
- game.logs=[{title:'رویداد نخست',message:'شروع روز'},{title:'رویداد دوم',message:'کارت اتهام'}];
+ game.logs=[{title:'رویداد دوم',message:'کارت اتهام'},{title:'رویداد نخست',message:'شروع روز'}]; // logs are newest-first in the actual engine
  const summary=exp.endgame({...game,winner:'town'});
  assert.match(summary,/data-sx-replay/);
  doc.getElementById('modalBody').innerHTML=summary;
