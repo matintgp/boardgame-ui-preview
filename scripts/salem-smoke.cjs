@@ -379,3 +379,47 @@ test('new opening-night dependencies and turn motion exist',()=>{
    assert.match(html,new RegExp('assets/'+name.replace(/[.]/g,'[.]')));
  }
 });
+
+
+test('full opening dawn transitions from sleep through private ballot to first cat-owner turn',async()=>{
+ const {dom,doc,qa}=setup(4,'witch');
+ const state=qa.state();
+ state.players[0].witchEver=true;
+ dom.window.__QA_SKIP_DAWN=false;
+ click(doc,'#modalBody .modal-actions button');
+ assert.equal(state.phase,'dawn');
+ assert.equal(state.initialDawn.stage,'sleep');
+ state.initialDawn.endsAt=Date.now()-1;
+ await new Promise(resolve=>setTimeout(resolve,230));
+ assert.equal(state.initialDawn.stage,'vote');
+ assert.ok(doc.querySelector('[data-dawn-vote="2"]'));
+ click(doc,'[data-dawn-vote="2"]');
+ assert.equal(state.initialDawn.votes[0],2);
+ state.initialDawn.endsAt=Date.now()-1;
+ await new Promise(resolve=>setTimeout(resolve,230));
+ assert.equal(state.initialDawn.stage,'sunrise');
+ assert.equal(state.blackCat,2);
+ state.initialDawn.endsAt=Date.now()-1;
+ await new Promise(resolve=>setTimeout(resolve,230));
+ assert.equal(state.phase,'turn');
+ assert.equal(state.current,2);
+ assert.equal(state.dawnCompleted,true);
+ assert.ok(state.turnEndsAt>Date.now());
+ assert.ok(!doc.getElementById('salemDawn'));
+ dom.window.SalemDawn.stop();
+ dom.window.close();
+});
+
+test('turn clock expires once and reports public owner; timer markup is present',()=>{
+ const {dom,doc,qa}=setup();
+ const source=fs.readFileSync(path.join(base,'assets/salem-turn.js'),'utf8');
+ dom.window.eval(source);
+ const state=qa.state();
+ state.phase='turn';state.current=0;state.turnEndsAt=Date.now()-500;
+ let fired=0;
+ dom.window.SalemTurn.sync(state,()=>fired++);
+ assert.equal(fired,1);
+ assert.match(doc.querySelector('#turnTimerBadge').textContent,/00:00/);
+ dom.window.SalemTurn.stop();
+ dom.window.close();
+});
