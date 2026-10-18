@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import './salem-phase.css';
 import {townHallById} from '../town-hall-catalogue';
 import type {PublicPlayer,SalemSnapshot} from '../match-protocol';
 
