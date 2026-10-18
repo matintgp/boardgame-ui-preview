@@ -1,0 +1,13 @@
+.turn-timer{font-family:Outfit,sans-serif!important;direction:ltr;font-weight:800!important;font-size:18px!important;letter-spacing:.04em;background:#172c38!important;color:#f0d398!important;border-color:#d4ae748c!important;font-variant-numeric:tabular-nums;min-width:78px;text-align:center}
+.turn-timer.urgent{color:#ff9d93!important;background:#41232d!important;animation:salemUrgent .9s ease-in-out infinite}
+.voice-badge{color:#cad6df!important;font-size:11px!important;line-height:1.9;max-width:min(360px,95vw);text-wrap:wrap}
+@keyframes salemUrgent{50%{box-shadow:0 0 18px #d76c6f7c}}
+.salem-draw-animation{position:fixed;z-index:2600;pointer-events:none;width:135px;height:175px;filter:drop-shadow(0 10px 20px #000b)}
+.salem-draw-animation i{position:absolute;display:block;width:104px;height:146px;background:linear-gradient(135deg,#233b4c,#111b26);border:3px double #e8c17e;border-radius:14px;box-shadow:0 13px 25px #0008;animation:salemCardDraw 1.15s cubic-bezier(.18,.68,.27,1) both}
+.salem-draw-animation i:first-child{animation-delay:.09s}.salem-draw-animation i:nth-child(2){animation-delay:.2s;transform-origin:50% 100%}
+.salem-draw-animation i:after{content:"✦";position:absolute;inset:0;display:grid;place-items:center;color:#eac18c;font-size:35px}
+.salem-draw-animation span{position:absolute;bottom:-13px;left:-15px;padding:5px 12px;white-space:nowrap;background:#0a1825ec;border:1px solid #d1ab6d78;border-radius:10px;color:#eed8b6;font-size:12px;animation:salemLabel 1.1s ease both}
+@keyframes salemCardDraw{0%{opacity:0;transform:translate3d(0,25px,0) rotate(0) scale(.65)}45%{opacity:1}75%{transform:translate3d(-32px,-28px,0) rotate(-16deg) scale(1)}100%{opacity:0;transform:translate3d(-90px,-60px,0) rotate(-22deg) scale(1.05)}}
+@keyframes salemLabel{0%{opacity:0;transform:translateY(15px)}40%{opacity:1}95%,100%{opacity:0;transform:translateY(-30px)}}
+@media(max-width:560px){.voice-badge{max-width:165px}.turn-timer{min-width:64px;font-size:16px!important}}
+@media(prefers-reduced-motion:reduce){.salem-draw-animation{display:none}.turn-timer.urgent{animation:none}}
