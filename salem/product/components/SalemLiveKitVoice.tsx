@@ -1,72 +1,78 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent } from 'livekit-client';
+import { useEffect, useState } from 'react';
+import { LiveKitRoom, RoomAudioRenderer, useRoomContext } from '@livekit/components-react';
 import type { SalemVoiceAccess, SalemVoiceTokenResponse, VoiceChannel } from '../voice-contract';
 import { permittedChannel } from '../voice-contract';
 
 type Props = { state: SalemVoiceAccess; tokenEndpoint?: string };
 type Status = 'idle'|'connecting'|'connected'|'blocked'|'error';
 
-export function SalemLiveKitVoice({ state, tokenEndpoint='/api/salem/voice-token' }: Props) {
-  const [status,setStatus]=useState<Status>('idle');
+function MicrophoneControl({canSpeak}:{canSpeak:boolean}){
+  const room=useRoomContext();
   const [muted,setMuted]=useState(true);
-  const roomRef=useRef<Room|null>(null);
-  const channel=permittedChannel(state);
-  // Users must choose to enable microphone. No covert auto-capture.
-  const [micApproved,setMicApproved]=useState(false);
+  useEffect(()=>{
+    setMuted(true);
+    // Microphone is never enabled implicitly.
+    return ()=>{void room.localParticipant.setMicrophoneEnabled(false).catch(()=>{});};
+  },[room,canSpeak]);
+  async function toggle(){
+    if(!canSpeak)return;
+    try {
+      const enable=muted;
+      await room.localParticipant.setMicrophoneEnabled(enable);
+      setMuted(!enable);
+    }catch{setMuted(true);}
+  }
+  return <button type="button" disabled={!canSpeak} onClick={toggle}
+    aria-pressed={canSpeak&&!muted}>{!canSpeak?'فقط شنونده':muted?'فعال‌کردن میکروفون':'بی‌صدا کردن میکروفون'}</button>;
+}
+
+export function SalemLiveKitVoice({state,tokenEndpoint='/api/salem/voice-token'}:Props){
+  const channel:VoiceChannel|null=permittedChannel(state);
+  const [status,setStatus]=useState<Status>('idle');
+  const [grant,setGrant]=useState<SalemVoiceTokenResponse|null>(null);
+  const canSpeak=channel==='witch-night'||channel==='day-speaker';
 
   useEffect(()=>{
-    let cancelled=false;
-    const room=roomRef.current;
-    roomRef.current=null;
-    if(room){void room.disconnect(true);}
-    setStatus(channel?'idle':'blocked');setMuted(true);setMicApproved(false);
+    const controller=new AbortController();
+    setGrant(null);setStatus(channel?'connecting':'blocked');
     if(!channel)return;
-    // Server checks authentication, match membership, team and phase EACH time.
-    async function establish(approvedChannel:VoiceChannel){
-      try {
-        setStatus('connecting');
-        const r=await fetch(tokenEndpoint,{
-          method:'POST',credentials:'include',
+    // A client-supplied phase or team assertion is NEVER trusted. Backend independently
+    // validates session, match, side, speaker ID and phaseVersion before signing a token.
+    async function obtainGrant(allowed:VoiceChannel){
+      try{
+        const response=await fetch(tokenEndpoint,{
+          method:'POST',credentials:'include',signal:controller.signal,
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({matchId:state.matchId,channel:approvedChannel,expectedPhaseVersion:state.phaseVersion})
+          body:JSON.stringify({
+            matchId:state.matchId,
+            channel:allowed,
+            expectedPhaseVersion:state.phaseVersion
+          })
         });
-        if(!r.ok)throw new Error('voice access denied');
-        const grant=await r.json() as SalemVoiceTokenResponse;
-        if(!grant.server_url.startsWith('wss://')||!grant.participant_token)throw new Error('bad voice grant');
-        if(cancelled)return;
-        const newRoom=new Room({adaptiveStream:true,dynacast:true});
-        roomRef.current=newRoom;
-        newRoom.on(RoomEvent.Disconnected,()=>{if(!cancelled)setStatus('idle');});
-        await newRoom.connect(grant.server_url,grant.participant_token);
-        if(cancelled){await newRoom.disconnect(true);return;}
-        // Listen only to the server-authorized room. Speaking is separate.
-        setStatus('connected');
-      } catch {
-        if(!cancelled)setStatus('error');
-      }
+        if(!response.ok)throw new Error('Unauthorized LiveKit room');
+        const body=await response.json() as SalemVoiceTokenResponse;
+        if(!body.server_url.startsWith('wss://')||!body.participant_token)throw new Error('Bad grant');
+        if(!controller.signal.aborted){setGrant(body);setStatus('idle');}
+      }catch{if(!controller.signal.aborted)setStatus('error');}
     }
-    void establish(channel);
-    return ()=>{cancelled=true;const active=roomRef.current;roomRef.current=null;if(active)void active.disconnect(true);};
+    void obtainGrant(channel);
+    return ()=>controller.abort();
   },[channel,tokenEndpoint,state.matchId,state.phaseVersion,state.authenticatedPlayerId]);
 
-  async function toggleMic(){
-    const room=roomRef.current;if(!room||status!=='connected'||!channel)return;
-    try {
-      const next=!micApproved;
-      await room.localParticipant.setMicrophoneEnabled(next);
-      setMicApproved(next);setMuted(!next);
-    } catch {setMuted(true);setMicApproved(false);setStatus('error');}
-  }
-
-  return <section dir="rtl" aria-label="ارتباط صوتی سالم" className="salem-voice">
-    <strong>{channel==='witch-night'?'اتاق خصوصی ساحره‌ها':channel==='day-speaker'?'میکروفون نوبت شما':'میکروفون بسته است'}</strong>
-    <p aria-live="polite">{status==='connected'?'به اتاق مجاز LiveKit متصل شدی':
-      status==='connecting'?'در حال برقراری تماس…':status==='error'?'امکان اتصال وجود ندارد؛ مجوز سرور را بررسی کن.':
-      status==='blocked'?'برای این فاز مجوز صحبت نداری.':'در انتظار اتصال به سرور'}</p>
-    <button type="button" disabled={status!=='connected'||!channel} onClick={toggleMic}
-      aria-pressed={!muted}>{muted?'فعال‌کردن میکروفون':'بی‌صدا کردن میکروفون'}</button>
-    <small>توکن اتصال فقط از بک‌اند صادر می‌شود. پایان فاز اتصال این کانال را می‌بندد.</small>
+  return <section dir="rtl" className="salem-voice" aria-label="ارتباط صوتی سالم">
+    <strong>{channel==='witch-night'?'اتاق اختصاصی ساحره‌ها':channel==='day-speaker'?'نوبت صحبت شما':channel==='day-listen'?'در حال شنیدن صحبت نوبت':'میکروفون بسته است'}</strong>
+    <p aria-live="polite">{status==='connecting'?'در حال دریافت مجوز امن تماس…':status==='connected'?'ارتباط صوتی برقرار است':status==='blocked'?'در این فاز به کانال صوتی دسترسی نداری.':status==='error'?'توکن یا اتصال LiveKit معتبر نیست.':'آماده اتصال'}</p>
+    {grant&&channel&&<LiveKitRoom key={state.matchId+':'+state.phaseVersion+':'+channel}
+      token={grant.participant_token} serverUrl={grant.server_url}
+      connect={true} audio={false} video={false}
+      onConnected={()=>setStatus('connected')}
+      onDisconnected={()=>setStatus('idle')}
+      onError={()=>setStatus('error')}>
+      <RoomAudioRenderer/>
+      <MicrophoneControl canSpeak={canSpeak}/>
+    </LiveKitRoom>}
+    <small>شرکت‌کننده بدون مجوز سرور نه می‌تواند میکروفون منتشر کند و نه به اتاق ساحره‌ها وارد شود.</small>
   </section>;
 }
