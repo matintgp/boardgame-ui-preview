@@ -69,7 +69,7 @@ function showModal(title,html,actions=[],closable=false){
   const footer=document.createElement('div');footer.className='modal-actions';
   actions.forEach(({label,fn,primary})=>{const b=document.createElement('button');b.type='button';b.className='btn '+(primary?'primary':'outline');b.textContent=label;b.addEventListener('click',()=>{closeModal();fn?.();});footer.append(b);});
   if(actions.length)$('#modalBody').append(footer);
-  queueMicrotask(()=>{if(!$('#overlay').hidden){const next=$('#modalBody button:not([disabled])')||(!$('#closeModal').hidden?$('#closeModal'):null);next?.focus({preventScroll:true});}});
+  const next=$('#modalBody button:not([disabled])')||(!$('#closeModal').hidden?$('#closeModal'):null);next?.focus({preventScroll:true});
 }
 function closeModal(){ $('#overlay').hidden=true;$('#closeModal').hidden=false;const previous=modalReturnFocus;modalReturnFocus=null;if(previous?.isConnected)previous.focus({preventScroll:true}); }
 function forceClose(){ closeModal(); }
