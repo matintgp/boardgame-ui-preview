@@ -1,0 +1,39 @@
+name: Salem — package public-domain rooster sound
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/salem-rooster-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  store-sfx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download public-domain sound from Wikimedia Commons
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p salem/assets/audio
+          curl -fLsS --retry 3 --retry-delay 2 --max-time 40 \
+            --user-agent 'BoardGameSalemDemo/1.0 (asset attribution in repository)' \
+            'https://commons.wikimedia.org/wiki/Special:Redirect/file/Small_rooster_crowing.ogg' \
+            -o salem/assets/audio/rooster-crowing.ogg
+          test "$(wc -c <salem/assets/audio/rooster-crowing.ogg)" -gt 20000
+          test "$(head -c 4 salem/assets/audio/rooster-crowing.ogg)" = OggS
+      - name: Publish audio
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add salem/assets/audio/rooster-crowing.ogg
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add original public-domain rooster crow audio'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
