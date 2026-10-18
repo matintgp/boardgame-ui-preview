@@ -13,6 +13,8 @@ const CARD={
   acc1:{label:'اتهام ×۱',kind:'red',value:1,image:IMG.gavel,help:'۱ اتهام به بازیکن هدف اضافه می‌کند.'},
   acc2:{label:'اتهام ×۲',kind:'red',value:2,image:IMG.gavel,help:'۲ اتهام به بازیکن هدف اضافه می‌کند.'},
   acc3:{label:'اتهام ×۳',kind:'red',value:3,image:IMG.gavel,help:'۳ اتهام به بازیکن هدف اضافه می‌کند.'},
+  accCotton:{label:'Evidence خنثی',kind:'red',value:1,image:IMG.gavel,help:'کاهش‌یافته توسط Cotton Mather.'},
+  witness:{label:'Witness',kind:'red',value:7,image:IMG.gavel,help:'استفاده ویژه Will Griggs از Alibi به عنوان Witness.'},
   alibi:{label:'دفاع (Alibi)',kind:'green',image:IMG.evidence,help:'تا ۳ اتهام را از بازیکن دیگر حذف می‌کند (نسخه دمو).'},
   asylum:{label:'پناهگاه (Asylum)',kind:'blue',image:IMG.letter,help:'بازیکن را تا زمان حذف اثر، از یک حمله شبانه حفاظت می‌کند.'},
   scapegoat:{label:'سپر بلا (Scapegoat)',kind:'green',image:IMG.letter,help:'همه کارت‌های رو به روی یک نفر را به نفر دیگر منتقل می‌کند؛ بدون اثر روی خودت.'},
@@ -89,6 +91,39 @@ function effectiveTown(p){
 function hasTown(p,id){return Boolean(p?.alive&&effectiveTown(p)?.id===id);}
 function availableTown(p){const c=effectiveTown(p);return c?.initialCharges==null?null:Math.max(0,p?.abilityCharges??c.initialCharges);}
 function spendTown(p){if(availableTown(p)==null||availableTown(p)<=0)return false;p.abilityCharges--;return true;}
+function accuseLimit(target,actor=null){
+ if(!target)return 7;
+ const george=hasTown(target,'george');
+ if(actor&&hasTown(actor,'thomas')&&!george)return 6;
+ if(actor&&hasTown(actor,'thomas')&&george)return 7;
+ return george?8:7;
+}
+function abilityUsable(p){
+ if(!game||!p?.alive||game.phase!=='turn'||game.current!==p.id||game.played!==0||game.action!=='choose'||game.pendingReveal!=null)return false;
+ const c=effectiveTown(p);
+ return Boolean(c&&['samuel','tituba'].includes(c.id)&&(availableTown(p)||0)>0);
+}
+function abilitySummary(p){
+ const c=townCard(p),active=effectiveTown(p),remaining=availableTown(p);
+ return c?`<section class="townhall-ability"><strong>${esc(c.fa)}${active&&active.id!==c.id?` · قابلیت ${esc(active.fa)}`:''}</strong><p>${esc(active?.description||c.description)}</p><div class="ability-tag">${remaining===null?'قابلیت دائمی یا شرطی':remaining===0?'استفاده‌ها تمام شد':remaining+' استفاده باقی‌مانده'}</div>${p.id===0&&abilityUsable(p)?`<button class="btn outline" type="button" data-townhall-activate>فعال‌کردن قابلیت ${esc(active.fa)}</button>`:''}</section>`:'';
+}
+function bonusDraw(p,count,{allowBlack=true}={}){
+ let gained=0;
+ while(gained<count&&game.deck.length){
+  const key=game.deck.shift();
+  if(key==='night'||key==='conspiracy'){
+   if(allowBlack){
+    game.discard.push(key);
+    game.pendingDraw={owner:p.id,remaining:count-gained-1,bonus:true};
+    if(key==='night')beginNight();else beginConspiracy();
+   }else game.deck.push(key);
+   return gained;
+  }
+  p.hand.push(key);gained++;
+ }
+ return gained;
+}
+
 function revealTownIntro(){
  const me=human(),witch=me.tryals.some(t=>t.type==='witch'),guard=me.tryals.some(t=>t.type==='constable');
  const role=witch?'جادوگر':guard?'کلانتر':'شهروند',art=witch?IMG.witch:guard?IMG.guard:IMG.evidence;
@@ -167,6 +202,7 @@ function render(){
  $('#turnBadge').textContent=`نوبت ${game.turn}`;$('#phaseBadge').textContent=phaseTitle;$('#aliveBadge').textContent=`${living().length} نفر زنده`;
  $('#deckCount').textContent=game.deck.length;$('#witchProgress').textContent=`${dangerCount()}/${game.totalWitches}`;$('#discardCount').textContent=game.discard.length;$('#roundCount').textContent=game.turn;
  $('#myIdentity').innerHTML=secretOpen?`<div class="secret-content"><img src="${me.tryals.some(t=>t.type==='witch')?IMG.witch:me.tryals.some(t=>t.type==='constable')?IMG.guard:IMG.evidence}" alt=""><div><strong>${me.tryals.some(t=>t.type==='witch')?'جادوگر':me.witchEver?'جادوگر سابق':me.tryals.some(t=>t.type==='constable')?'کلانتر':'شهروند'}</strong><p>${esc(me.character)}</p><p>${me.witchEver?'تیم جادوگران':'تیم شهر'}</p></div></div>`:`<div class="secret-content"><div class="secret-back">✦</div><div><strong>نقش مخفی است</strong><p>برای حفاظت از اطلاعات خصوصی روی دکمه نمایش نقش بزن.</p><p>${esc(me.character)}</p></div></div>`;
+ $('#myIdentity').insertAdjacentHTML('beforeend',abilitySummary(me));
  $('#toggleSecret').textContent=secretOpen?'پنهان کردن':'نمایش نقش';
  $('#myTryals').innerHTML=me.tryals.map((t,i)=>{const visible=secretOpen||t.revealed;return `<button class="tryal-mini ${t.revealed?'revealed':''} ${game.phase==='night'&&game.nightSelection==='confess'&&!t.revealed?'selectable':''}" data-my-trial="${i}" aria-label="Tryal ${i+1}: ${visible?TRIALS[t.type].label:'مخفی'}">${visible?`<img src="${TRIALS[t.type].art}" alt=""><b>${TRIALS[t.type].label}</b>`:'<span class="tryal-card-back" aria-hidden="true">✦</span><b>کارت مخفی</b>'}</button>`;}).join('');
  $('#actionStatus').textContent=game.phase==='turn'?(game.current===0?'نوبت من':'منتظر رقیب'):game.phase==='night'?'شب':'رویداد';
@@ -195,7 +231,7 @@ function renderBoard(){
  const display=(arr)=>`<div class="seat-grid" style="--cols:${Math.min(arr.length,5)}">${arr.map(p=>{
   const sel=chosenTarget===p.id,turn=game.phase==='turn'&&game.current===p.id;
   const trialHtml=p.tryals.map((t,i)=>`<span class="${t.revealed?'open':''}" title="${t.revealed?TRIALS[t.type].label:'Tryal مخفی'}">${t.revealed?(t.type==='witch'?'W':t.type==='constable'?'C':'✓'):'?'}</span>`).join('');
-  return `<button class="player-seat ${sel?'selected':''} ${turn?'turn-owner':''} ${!p.alive?'dead':''}" data-seat="${p.id}" aria-pressed="${sel}"><div class="seat-ident"><img src="${p.portrait}" alt=""><div><strong>${esc(p.name)} ${p.id===0?'(شما)':''}</strong><small>${esc(p.character)}</small></div></div><div class="seat-meta"><span>${p.alive?`اتهام ${p.accusations} / ۷`:'حذف‌شده'}</span><span>${game.blackCat===p.id?'🐈‍⬛ گربه سیاه':p.effects.length?'اثر '+p.effects.length:''}</span></div><div class="accuse-meter"><i style="width:${p.accusations/7*100}%"></i></div><div class="tiny-trials">${trialHtml}</div></button>`;
+  return `<button class="player-seat ${sel?'selected':''} ${turn?'turn-owner':''} ${!p.alive?'dead':''}" data-seat="${p.id}" aria-pressed="${sel}"><div class="seat-ident"><img src="${p.portrait}" alt=""><div><strong>${esc(p.name)} ${p.id===0?'(شما)':''}</strong><small>${esc(p.character)}</small></div></div><div class="seat-meta"><span>${p.alive?`اتهام ${p.accusations} / ${accuseLimit(p)}`:'حذف‌شده'}</span><span>${game.blackCat===p.id?'🐈‍⬛ گربه سیاه':p.effects.length?'اثر '+p.effects.length:''}</span></div><div class="accuse-meter"><i style="width:${p.accusations/accuseLimit(p)*100}%"></i></div><div class="tiny-trials">${trialHtml}</div></button>`;
  }).join('')}</div>`;
  let ic=game.phase==='night'?'☾':game.phase==='conspiracy'?'✉':'⚖';let title=game.phase==='night'?'شب تصمیم‌های پنهان':game.phase==='conspiracy'?'توطئه در شهر':game.phase==='finished'?'پایان پرونده':game.pendingReveal!=null?'وقت افشای Tryal':game.current===0?'اکنون نوبت توست':`نوبت ${current()?.name}`;
  let sub=game.phase==='turn'&&game.current===0?'یا دو کارت بکش یا حداقل یک کارت بازی کن.':game.lastPublic;
