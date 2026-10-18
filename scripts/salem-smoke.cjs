@@ -99,6 +99,9 @@ test('Black Conspiracy interrupts drawing, resolves, then takes the remaining ca
  const {dom,doc,qa}=setup();
  click(doc,'#modalBody .modal-actions button');
  const s=qa.state();s.deck=['conspiracy','acc1','night'];
+ s.blackCat=1;
+ s.players[1].tryals.forEach(t=>t.type='innocent');
+ s.players.forEach(p=>{if(p.townHallId==='rebecca')p.townHallId='giles';});
  s.players[0].hand=[];qa.render();
  click(doc,'[data-action="draw"]');
  assert.equal(s.phase,'conspiracy');
