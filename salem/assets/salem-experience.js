@@ -129,6 +129,7 @@ function effect(kind,data={}){
  if(prefs.sfx)window.SalemAudio?.cue?.(kind);
 }
 function onSelected(key){selected=key;}
+function catalog(definitions){cardDict=definitions||{};}
 function endgame(s){
  const logs=(s?.logs||[]).slice(0,35);
  const players=s?.players||[];
@@ -137,6 +138,7 @@ function endgame(s){
  const history='<details class="sx-history"><summary>مرور '+logs.length+' رویداد مهم مسابقه</summary>'+logs.map(x=>'<div><strong>'+esc(x.title)+'</strong><p>'+esc(x.message)+'</p></div>').join('')+'</details>';
  return '<div class="sx-end"><span class="sx-eyebrow">MATCH COMPLETE</span><h3>'+text+'</h3><div class="sx-end-stats"><b>'+Number(s.turn||0)+' نوبت</b><b>'+players.filter(p=>p.alive).length+' بازمانده</b><b>'+Number(s.totalWitches||0)+' کارت Witch</b></div>'+cards+history+'<p class="sx-muted">نقش‌ها فقط پس از پایان مسابقه نشان داده شده‌اند. این خلاصه از شبیه‌سازی مرورگر ساخته می‌شود.</p></div>';
 }
-window.SalemExperience=Object.freeze({load,update,settings,guide,tutorial,inspect,effect,onSelected,endgame,close,upcoming,getPrefs:()=>({...prefs})});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+window.SalemExperience=Object.freeze({load,update,settings,guide,tutorial,inspect,effect,onSelected,catalog,endgame,close,upcoming,getPrefs:()=>({...prefs})});
+function start(){load();$('#inspectCardButton')?.addEventListener('click',()=>selected?inspect(selected):guide());$('#experienceSettingsButton')?.addEventListener('click',settings);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
