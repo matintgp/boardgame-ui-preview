@@ -76,10 +76,40 @@ function details(c){
 }
 function inspect(key){const card=cardDict[key];open('جزئیات کارت',details(card),null);}
 function guide(){
- const cards=Object.entries(cardDict).filter(([,c])=>c?.help&&c?.kind!=='black'&&!['witness','accCotton'].includes(c.key));
- const tabs='<div class="sx-guide-grid">'+cards.map(([key,c])=>'<button type="button" class="sx-guide-entry" data-guide-card="'+esc(key)+'"><img src="'+esc(c.image)+'" alt=""><span>'+esc(c.label)+'</span></button>').join('')+'</div>';
- open('کتابچه کارت‌ها','<p class="sx-muted">تصویر هر کارت را انتخاب کن تا قانون آن به شکل بزرگ نمایش داده شود. این راهنما اطلاعات مخفی مسابقه را نمایش نمی‌دهد.</p>'+tabs,body=>{
-  body.querySelectorAll('[data-guide-card]').forEach(b=>b.addEventListener('click',()=>inspect(b.dataset.guideCard)));
+ const cards=Object.entries(cardDict).filter(([key,c])=>c?.help&&!['witness','accCotton','blackcat'].includes(key));
+ const roles=window.SalemTownHall?.all||[];
+ const contents='<div class="sx-library-head"><p class="sx-muted">قوانین کارت‌ها و شخصیت‌ها را بدون افشای اطلاعات مخفی رقبا مرور کن.</p>'+
+ '<label class="sx-search"><span>جستجو</span><input type="search" id="sxLibrarySearch" placeholder="نام یا قابلیت را بنویس…" autocomplete="off"></label>'+
+ '<div class="sx-filter" role="group" aria-label="دسته‌بندی کتابچه">'+
+ [['all','همه'],['red','اتهام'],['green','اقدام'],['blue','آبی'],['black','رویداد'],['role','شخصیت‌ها']].map(([id,label])=>
+  '<button type="button" data-sx-filter="'+id+'" aria-pressed="'+String(id==='all')+'">'+label+'</button>').join('')+
+ '</div></div><div id="sxLibraryEntries" class="sx-guide-grid" aria-live="polite"></div><p id="sxLibraryEmpty" class="sx-muted" hidden>نتیجه‌ای پیدا نشد.</p>';
+ open('کتابچه تعاملی Salem',contents,body=>{
+  const input=body.querySelector('#sxLibrarySearch'),list=body.querySelector('#sxLibraryEntries');
+  let filter='all';
+  function draw(){
+   const q=input.value.trim().toLocaleLowerCase();
+   const filteredCards=filter==='role'?[]:cards.filter(([key,c])=>(filter==='all'||c.kind===filter)&&[key,c.label,c.help].join(' ').toLocaleLowerCase().includes(q));
+   const filteredRoles=(filter==='all'||filter==='role')?roles.filter(c=>[c.en,c.fa,c.description,c.job].join(' ').toLocaleLowerCase().includes(q)):[];
+   list.innerHTML=filteredCards.map(([key,c])=>'<button type="button" class="sx-guide-entry" data-guide-card="'+esc(key)+'"><img loading="lazy" src="'+esc(c.image)+'" alt=""><span>'+esc(c.label)+'</span><small>'+esc({red:'اتهام',green:'اقدام',blue:'آبی',black:'رویداد'}[c.kind]||'')+'</small></button>').join('')+
+   filteredRoles.map(c=>'<button type="button" class="sx-guide-entry" data-guide-role="'+esc(c.id)+'"><img loading="lazy" src="'+esc(c.image)+'" alt=""><span>'+esc(c.fa)+'</span><small>'+esc(c.en)+'</small></button>').join('');
+   body.querySelector('#sxLibraryEmpty').hidden=filteredCards.length+filteredRoles.length>0;
+  }
+  input.addEventListener('input',draw);
+  body.querySelectorAll('[data-sx-filter]').forEach(button=>button.addEventListener('click',()=>{
+   filter=button.dataset.sxFilter;
+   body.querySelectorAll('[data-sx-filter]').forEach(other=>other.setAttribute('aria-pressed',String(other===button)));
+   draw();
+  }));
+  list.addEventListener('click',event=>{
+   const card=event.target.closest('[data-guide-card]'),role=event.target.closest('[data-guide-role]');
+   if(card)inspect(card.dataset.guideCard);
+   if(role){
+    const person=window.SalemTownHall?.byId[role.dataset.guideRole];
+    if(person)open('قابلیت شخصیت','<div class="sx-card-detail"><img src="'+esc(person.image)+'" alt="پرتره '+esc(person.fa)+'"><div><span class="sx-pill">'+esc(person.type==='passive'?'دائمی':person.type==='trigger'?'شرطی':person.type==='twice'?'دوبار':'یک‌بار')+'</span><h3>'+esc(person.fa)+'</h3><small dir="ltr">'+esc(person.en)+'</small><p>'+esc(person.description)+'</p></div></div>');
+   }
+  });
+  draw();
  });
 }
 function tutorial(index){
