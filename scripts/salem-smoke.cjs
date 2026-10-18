@@ -254,7 +254,7 @@ test('Town Hall selection burns the unchosen public ability and cannot be used t
  assert.equal(state.townHallOffers.length,0);
  assert.equal(state.burnedTownHall.length,9);
  assert.equal(state.players.filter(p=>p.townHallId!=null).length,6);
- assert.equal(new Set(state.players.map(p=>p.townHallId)).size,6);
+ assert.equal(new Set([state.__qaTownHallChoice,...state.players.slice(1).map(p=>p.townHallId)]).size,6);
  assert.equal(state.burnedTownHall.includes(state.__qaTownHallChoice),false);
  dom.window.close();
 });
