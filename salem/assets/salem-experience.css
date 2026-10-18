@@ -74,3 +74,25 @@ body[data-sx-compact="yes"] .panel-pad{padding:13px}
 body[data-sx-motion="off"] .sx-effect{display:none!important}
 body[data-sx-motion="off"] .sx-is-speaker .sx-avatar-wrap{animation:none!important}
 .sx-sheet button:focus-visible,.sx-sheet input:focus-visible{outline:3px solid #f3d298;outline-offset:3px}
+
+/* Environmental polish. Work with existing illustration assets; CSS-only depth and weather. */
+body[data-sx-phase="night"] .game-status,body[data-sx-phase="night-report"] .game-status{background:linear-gradient(130deg,#152944,#081122 72%);border-color:#83a8de70;box-shadow:0 0 35px #4e7aa92c,inset 0 0 45px #91b6de12}
+body[data-sx-phase="conspiracy"] .game-status{background:linear-gradient(125deg,#391b27,#0d1721);border-color:#e6a1af57}
+body[data-sx-phase="turn"] .game-status{background:linear-gradient(125deg,#27342e,#101921 66%,#17232a);border-color:#d6ad766e}
+.salem-board{position:relative}
+.salem-board:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 42% 17%,#eac08310,transparent 55%),linear-gradient(120deg,transparent 30%,#e0c29208 60%,transparent);mix-blend-mode:screen;border-radius:inherit}
+.salem-board.night:before{background:radial-gradient(ellipse at 50% 10%,#80b5fa25,transparent 52%),linear-gradient(120deg,#091c3899,#11182922)}
+.salem-board.conspiracy:before{background:radial-gradient(ellipse at 60% 40%,#a6345f19,transparent 65%)}
+.player-seat{position:relative;isolation:isolate}
+.player-seat.turn-owner:after{content:"";position:absolute;inset:-4px;border:1px solid #e7c38790;border-radius:inherit;pointer-events:none;animation:sxHalo 2.8s ease-in-out infinite}
+.player-seat.blackcat-holder{box-shadow:0 0 0 1px #9facdb99,0 0 25px #94a9e62d;z-index:2}
+.sx-cat-marker{position:absolute;top:-12px;left:5px;display:grid;place-items:center;min-width:34px;height:27px;background:linear-gradient(145deg,#28354b,#121825);border:1px solid #adbae1b0;color:#cfdeff;border-radius:10px;font:700 19px Georgia,serif;box-shadow:0 6px 14px #0009;pointer-events:none}
+.action-card{position:relative;will-change:transform}
+.action-card.selected{z-index:3}
+.action-card:not(:disabled):active{transform:translateY(-1px) scale(.985)}
+.sx-hand-controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.sx-hand-controls .btn{font-size:11px}
+@keyframes sxHalo{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.95;transform:scale(1.018)}}
+@media(max-width:540px){.player-seat.turn-owner:after{inset:-2px}.sx-cat-marker{height:21px;min-width:24px;top:-10px;font-size:14px}.sx-hud{border-radius:15px}}
+@media(prefers-reduced-motion:reduce){.player-seat.turn-owner:after{animation:none}.action-card{will-change:auto}}
+body[data-sx-motion="off"] .player-seat.turn-owner:after{animation:none!important}
