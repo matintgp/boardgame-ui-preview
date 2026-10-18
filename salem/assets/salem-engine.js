@@ -228,7 +228,8 @@ function turnButtons(){
  if(game.phase==='finished')return '<div class="primary-description">مسابقه به پایان رسیده است.</div><button class="btn primary" id="newGameAction">بازی جدید</button>';
  if(game.phase==='night'){
   const special=nightRole();const can=game.nightSelection==='protect'||game.nightSelection==='attack';
-  return `<p class="primary-description">${special==='witch'?'به‌عنوان جادوگر یک بازیکن را برای حمله انتخاب کن.':special==='constable'?'به‌عنوان کلانتر یک نفر به‌جز خودت را برای حفاظت انتخاب کن.':'اکشن سایر نقش‌ها به‌صورت نمایشی انجام می‌شود.'}</p>${human().alive&&!game.nightConfessed?'<button class="btn outline" data-action="confess">اعتراف برای مصونیت این شب</button>':''}<div class="action-stack"><button class="btn primary" data-action="night-done" ${can&&game.nightTargetUser==null?'disabled':''}>${can?'تأیید انتخاب و طلوع':'مشاهده نتیجه شب'}</button></div>`;
+  const phips=human().alive&&!game.nightConfessed&&hasTown(human(),'william')&&(availableTown(human())||0)>0;
+  return `<p class="primary-description">${special==='witch'?'به‌عنوان جادوگر یک بازیکن را برای حمله انتخاب کن.':special==='constable'?'به‌عنوان کلانتر یک نفر به‌جز خودت را برای حفاظت انتخاب کن.':'اکشن سایر نقش‌ها به‌صورت نمایشی انجام می‌شود.'}</p>${human().alive&&!game.nightConfessed?'<button class="btn outline" data-action="confess">اعتراف برای مصونیت این شب</button>':''}${phips?'<button class="btn primary" data-action="free-confess">اعتراف رایگان با توانایی William Phips</button>':''}<div class="action-stack"><button class="btn primary" data-action="night-done" ${can&&game.nightTargetUser==null?'disabled':''}>${can?'تأیید انتخاب و طلوع':'مشاهده نتیجه شب'}</button></div>`;
  }
  if(game.phase!=='turn')return '<p class="primary-description">در حال اجرای رویداد ویژه هستیم…</p>';
  if(game.current!==0||running)return '<div class="primary-description turn-spinner"><i></i> بازیکنان شبیه‌سازی‌شده مشغول تصمیم‌گیری هستند.</div>';
@@ -282,11 +283,21 @@ function removeAlibiAccusations(target){
  target.accusations=Math.max(0,target.accusations-score);
  return score;
 }
-function playCard(by,handIndex,targetId,bot=false,destinationId=null){
+function playCard(by,handIndex,targetId,bot=false,destinationId=null,alibiMode=null){
  const owner=member(by);
  if(!owner?.alive||game.phase!=='turn'||by!==game.current||game.pendingReveal!=null)return false;
  const key=owner.hand[handIndex],card=CARD[key],target=member(targetId);
  if(!card||!legalTarget(by,targetId,key))return false;
+ if(key==='alibi'&&hasTown(owner,'will')&&!bot&&alibiMode==null){
+  showModal('Will Griggs — انتخاب اثر Alibi',`<div class="inset"><strong>دو روش استفاده از کارت</strong><p>می‌توانی Alibi را برای حذف تا ۳ اتهام خرج کنی، یا از قابلیت پزشک برای ۷ اتهام مستقیم استفاده کنی.</p></div><div class="action-row"><button type="button" class="btn outline" data-alibi-mode="defense">حذف اتهام‌ها</button><button type="button" class="btn primary" data-alibi-mode="witness" ${target.effects.includes('piety')?'disabled':''}>Witness · ۷ اتهام</button></div>`,[],true);
+  $$('#modalBody [data-alibi-mode]').forEach(btn=>btn.onclick=()=>{
+   const mode=btn.dataset.alibiMode;
+   if(mode==='witness'&&target.effects.includes('piety'))return;
+   forceClose();playCard(by,handIndex,targetId,false,destinationId,mode);
+  });
+  return true;
+ }
+ if(alibiMode==='witness'&&target.effects.includes('piety'))return false;
  if(key==='scapegoat'&&!bot&&destinationId==null){
   const options=living().filter(p=>p.id!==by&&p.id!==targetId);
   showModal('Scapegoat — انتخاب مقصد',`<div class="inset"><strong>انتقال تمام کارت‌های رو‌به‌روی ${esc(target.name)}</strong><p>طبق قانون اول Salem، مقصد نباید خودت یا بازیکن مبدأ باشد. یک نفر را برای انتقال انتخاب کن.</p></div><div class="tryal-chooser">${options.map(p=>`<button class="btn outline" data-scapegoat-to="${p.id}">${esc(p.name)}</button>`).join('')}</div>`,[],true);
@@ -300,8 +311,7 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null){
  owner.hand.splice(handIndex,1);
  if(card.kind==='green')game.discard.push(key);
  let body='';
- const useWillWitness=key==='alibi'&&hasTown(owner,'will')&&owner.willWitness===true;
- owner.willWitness=false;
+ const useWillWitness=key==='alibi'&&hasTown(owner,'will')&&(bot?true:alibiMode==='witness');
  if(card.kind==='red'||useWillWitness){
   const value=useWillWitness?7:key==='acc3'&&hasTown(target,'cotton')?1:card.value;
   target.accusations+=value;target.redPile.push(useWillWitness?'witness':key==='acc3'&&hasTown(target,'cotton')?'accCotton':key);
@@ -578,7 +588,60 @@ function resolveNight(){
  game.deck=shuffle([...game.deck.filter(x=>x!=='night'),...discard]);game.deck.push('night');game.discard=[];
  render();showModal('گزارش بامداد',`<img class="modal-poster" src="${IMG.village}" alt=""><p>${esc(report)}</p><p class="inset">کارت‌های دورریز برای دور بعد بازگردانده شدند. ترتیب نوبت‌های معمول ادامه پیدا می‌کند.</p>`,[{label:'بازگشت به بازی',primary:true,fn:nextAfterBlack}]);
 }
+
+function activateTownHall(){
+ const me=human();
+ if(!abilityUsable(me))return notice('این قابلیت الآن قابل فعال‌کردن نیست.');
+ const card=effectiveTown(me);
+ if(card.id==='samuel'){
+  const options=game.discard.filter(k=>CARD[k]&&CARD[k].kind!=='black');
+  if(!options.length)return notice('هنوز کارت قابل برداشت در دورریز وجود ندارد.');
+  let chosen=[];
+  const paint=()=>{
+   const html=options.map((key,i)=>`<button type="button" class="btn ${chosen.includes(i)?'primary':'outline'}" data-parris-take="${i}">${esc(CARD[key].label)} ${chosen.includes(i)?'✓':''}</button>`).join('');
+   $('#modalBody').innerHTML=`<div class="inset"><strong>Samuel Parris · برداشتن از دورریز</strong><p>حداکثر دو کارت انتخاب کن. این عمل کل نوبت توست. تعداد استفاده باقی‌مانده: ${availableTown(me)}</p></div><div class="tryal-chooser">${html}</div><button type="button" class="btn primary" data-parris-confirm ${!chosen.length?'disabled':''}>برداشتن ${chosen.length} کارت و پایان نوبت</button>`;
+   $$('#modalBody [data-parris-take]').forEach(b=>b.addEventListener('click',()=>{
+    const idx=Number(b.dataset.parrisTake);
+    if(chosen.includes(idx))chosen=chosen.filter(x=>x!==idx);
+    else if(chosen.length<2)chosen.push(idx);
+    paint();
+   }));
+   $('#modalBody [data-parris-confirm]')?.addEventListener('click',()=>{
+    if(!abilityUsable(me)||!chosen.length||!spendTown(me))return;
+    const keys=chosen.map(i=>options[i]);
+    for(const key of keys){const pos=game.discard.indexOf(key);if(pos>=0)game.discard.splice(pos,1);}
+    me.hand.push(...keys);
+    log('توانایی ساموئل',`${me.name} به‌جای دسته کارت، ${keys.length} کارت از دورریز برداشت.`);
+    forceClose();render();advanceTurn();
+   });
+  };
+  showModal('توانایی ساموئل پاریس','',[],true);paint();return;
+ }
+ if(card.id==='tituba'){
+  // Exactly one use. Full deck is visible privately, with arrow actions to reorder.
+  let edited=[...game.deck];
+  const paint=()=>{
+   $('#modalBody').innerHTML=`<div class="inset"><strong>تیتوبا · یک بار در بازی</strong><p>تمام دسته را فقط خودت می‌بینی. با دکمه‌های بالا و پایین ترتیب را عوض کن؛ سپس ذخیره کن. این قابلیت نوبت را تمام نمی‌کند.</p></div><div class="townhall-deck-editor">${edited.map((key,i)=>`<div class="townhall-deck-line"><span>${i+1}. ${esc(CARD[key]?.label||key)}</span><div><button type="button" class="btn tiny" data-deck-up="${i}" ${i===0?'disabled':''}>↑</button><button type="button" class="btn tiny" data-deck-down="${i}" ${i===edited.length-1?'disabled':''}>↓</button></div></div>`).join('')}</div><button class="btn primary" data-tituba-confirm>ثبت چینش دسته</button>`;
+   $$('#modalBody [data-deck-up]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.deckUp);if(i>0){[edited[i],edited[i-1]]=[edited[i-1],edited[i]];paint();}});
+   $$('#modalBody [data-deck-down]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.deckDown);if(i<edited.length-1){[edited[i],edited[i+1]]=[edited[i+1],edited[i]];paint();}});
+   $('#modalBody [data-tituba-confirm]').onclick=()=>{
+    if(!abilityUsable(me)||!spendTown(me))return;
+    game.deck=edited;log('توانایی تیتوبا','تیتوبا یک بار ترتیب دسته کارت‌ها را تغییر داد.');
+    forceClose();render();
+   };
+  };
+  showModal('توانایی تیتوبا','',[],true);paint();
+ }
+}
+function freePhipsConfess(){
+ if(game.phase!=='night'||!human()?.alive||game.nightConfessed||!hasTown(human(),'william')||!spendTown(human()))return;
+ game.nightConfessed=true;game.nightSelection=null;
+ log('توانایی ویلیام فیپس','اعتراف رایگان انجام شد؛ Tryal مخفی نماند.');
+ notice('امشب مصون شدی؛ هیچ Tryal افشا نشد.');render();
+}
+
 function handleAction(kind){
+ if(kind==='free-confess'){freePhipsConfess();return;}
  if(kind==='draw'){if(isMyTurn()&&game.action==='choose')drawTwo(0);return;}
  if(kind==='play'){
   if(!isMyTurn())return;
@@ -598,6 +661,7 @@ function init(){
  $('#playerCount').addEventListener('change',refreshLobby);$('#startGame').addEventListener('click',start);
  $('#resumeGame').addEventListener('click',()=>{game=read();if(game){token++;running=false;secretOpen=false;chosenCard=null;chosenTarget=null;if(game.phase==='conspiracy'){game.phase='turn';game.pendingDraw=null;}showGame();if(game.townHallPending){beginTownHallDraft();return;}if(game.phase==='turn'&&game.pendingReveal!=null)requestTryalReveal(game.pendingReveal);else if(game.phase==='turn'&&game.current!==0)queueBot();}else notice('فایلی برای ادامه یافت نشد.');});
  $('#toggleSecret').addEventListener('click',()=>{secretOpen=!secretOpen;render();});
+ $('#myIdentity').addEventListener('click',e=>{if(e.target.closest('[data-townhall-activate]'))activateTownHall();});
  $('#turnActions').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)handleAction(b.dataset.action);else if(e.target.id==='newGameAction')showLobby();});
  $('#myTryals').addEventListener('click',e=>{const b=e.target.closest('[data-my-trial]');if(b&&game?.phase==='night'&&game.nightSelection==='confess')completeConfession(Number(b.dataset.myTrial));});
  $('#fastTurn').addEventListener('click',()=>{rapid=!rapid;$('#fastTurn').textContent=rapid?'سرعت عادی رقیب‌ها':'تندتر شدن نوبت رقبا';notice(rapid?'شبیه‌سازی رقبا سریع‌تر شد.':'سرعت معمول فعال شد.');});
