@@ -89,7 +89,7 @@ test('turn enforcement, illegal self-target and owner of seventh accusation',()=
  click(doc,'[data-seat="0"]');
  assert.equal(doc.getElementById('selectedTarget').textContent.includes('هدف: شما'),false);
  const s=qa.state();
- s.players[0].hand=['acc1'];s.players[1].accusations=6;s.players[1].redPile=Array(6).fill('acc1');
+ s.players[1].townHallId='giles';s.players[0].hand=['acc1'];s.players[1].accusations=6;s.players[1].redPile=Array(6).fill('acc1');
  qa.render();
  click(doc,'[data-hand="0"]');click(doc,'[data-seat="1"]');
  click(doc,'[data-action="play"]');
