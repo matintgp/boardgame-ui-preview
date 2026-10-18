@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/salem.css">
 <link rel="stylesheet" href="assets/town-hall.css">
+<link rel="stylesheet" href="assets/salem-dawn.css">
+<link rel="stylesheet" href="assets/salem-turn.css">
 <link rel="stylesheet" href="../assets/bg-select.css">
 </head>
 <body>
@@ -36,7 +38,7 @@
     </div>
   </main>
   <main id="gamePage" hidden>
-    <section class="game-status panel"><div class="status-title"><span class="eyebrow" id="roomLabel">SALEM / ROOM</span><h1 id="statusTitle">نوبت بازیکن</h1><p id="statusSubtitle">اکنون یکی از دو گزینه را انتخاب کن.</p></div><div class="status-chips"><span class="tag" id="turnBadge">نوبت ۱</span><span class="tag" id="phaseBadge">روز</span><span class="tag" id="aliveBadge">۶ نفر زنده</span><span class="tag network">LOCAL SIMULATION</span></div></section>
+    <section class="game-status panel"><div class="status-title"><span class="eyebrow" id="roomLabel">SALEM / ROOM</span><h1 id="statusTitle">نوبت بازیکن</h1><p id="statusSubtitle">اکنون یکی از دو گزینه را انتخاب کن.</p></div><div class="status-chips"><span class="tag" id="turnBadge">نوبت ۱</span><span class="tag" id="phaseBadge">روز</span><span class="tag" id="aliveBadge">۶ نفر زنده</span><span class="tag turn-timer" id="turnTimerBadge" aria-label="زمان باقی‌مانده نوبت">01:00</span><span class="tag voice-badge" id="voiceStatusBadge">ویس: غیرفعال تا اتصال سرور</span><span class="tag network">LOCAL SIMULATION</span></div></section>
     <div class="game-layout">
       <aside class="side-col">
         <section class="panel panel-pad"><div class="section-title"><div><span class="eyebrow">PRIVATE VIEW</span><h2>کارت‌های شخصی من</h2></div><button class="btn tiny" id="toggleSecret">نمایش نقش</button></div><div id="myIdentity"></div><div class="mini-label">کارت‌های Tryal خودت</div><div class="tryal-strip" id="myTryals"></div><p class="aside-caption">فقط کارت‌های خودت و کارت‌های عمومی افشا شده قابل مشاهده‌اند.</p></section>
@@ -59,6 +61,9 @@
 <div class="overlay" id="overlay" hidden><div class="modal panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-top"><h2 id="modalTitle">عنوان</h2><button class="btn outline tiny" id="closeModal">بستن</button></div><div class="modal-body" id="modalBody"></div></div></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="assets/town-hall.js"></script>
+<script src="assets/salem-dawn.js"></script>
+<script src="assets/salem-audio.js"></script>
+<script src="assets/salem-turn.js"></script>
 <script src="assets/salem-engine.js"></script>
 <script src="../assets/bg-select.js" defer></script>
 </body></html>
