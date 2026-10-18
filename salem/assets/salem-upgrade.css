@@ -1,0 +1,44 @@
+/* Salem V5 — restrained cinematic polish for existing responsive layout.
+   Built on the original artwork and color system; no second competing design system. */
+:root{--sx-inset:inset 0 1px rgba(255,241,208,.11)}
+.sx-library-head{display:grid;gap:13px}
+.sx-search{display:grid;gap:5px;font-size:12px;color:#f2d4a4}
+.sx-search input{width:100%;min-height:45px;border:1px solid #c09a6c77;border-radius:12px;background:#071320;color:#f6e9d8;font:500 13px/1.8 var(--salem-font-fa);padding:8px 13px;outline:none}
+.sx-search input:focus-visible{border-color:#eed1a1;box-shadow:0 0 0 3px #e4bc8740}
+.sx-filter{display:flex;flex-wrap:wrap;gap:7px}
+.sx-filter button{border:1px solid #b79c7555;background:#1a2b38;color:#b9c8d4;border-radius:999px;padding:8px 12px;min-height:36px;font:600 11px/1.5 var(--salem-font-fa);cursor:pointer}
+.sx-filter button[aria-pressed="true"]{border-color:#edd39b;background:#5b432d;color:#ffe6bb}
+.sx-guide-grid{margin-top:17px}
+.sx-guide-entry{min-height:160px;box-shadow:var(--sx-inset)}
+.sx-guide-entry small{font-size:10px;line-height:1.5;color:#9baab7}
+.sx-end-actions,.sx-replay-controls{display:flex;gap:9px;flex-wrap:wrap}
+.sx-replay{display:grid;gap:14px}
+.sx-replay-counter{font:800 17px/1.8 Outfit,sans-serif;color:#efcc92;text-align:left;direction:ltr}
+.sx-replay-scene{position:relative;min-height:230px;border:1px solid #bc976275;border-radius:20px;padding:25px;background:radial-gradient(circle at 30% 0%,#9b764a28,transparent 65%),linear-gradient(145deg,#162d3b,#0b1520);box-shadow:0 18px 50px #0005;display:grid;align-content:center;justify-items:center;text-align:center;gap:8px;animation:sxRevealScene .36s cubic-bezier(.2,.7,.2,1) both}
+.sx-replay-mark{font:50px Georgia,serif;color:#efcd97;text-shadow:0 0 32px #e9bd806b}
+.sx-replay-scene h3{color:#f3d9ac;font-size:23px;margin:0}
+.sx-replay-scene p{font-size:13px;line-height:2.1;color:#d0dce7;max-width:590px}
+@keyframes sxRevealScene{from{opacity:.2;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+body[data-sx-large-text="yes"] .panel p,body[data-sx-large-text="yes"] .sx-sheet-body p,body[data-sx-large-text="yes"] .sx-card-detail p{font-size:clamp(14px,1.25vw,17px)!important;line-height:2.25}
+body[data-sx-large-text="yes"] .panel button,body[data-sx-large-text="yes"] .sx-sheet button{font-size:clamp(12px,1vw,15px)!important}
+body[data-sx-quiet="yes"] .sx-hud .sx-eyebrow,body[data-sx-quiet="yes"] .sx-speaker-label .sx-voice-warning{display:none}
+body[data-sx-quiet="yes"] .salem-board:before,body[data-sx-quiet="yes"] .salem-board:after{animation:none!important;opacity:.2}
+body[data-sx-quiet="yes"] .sx-is-speaker .sx-avatar-wrap{animation:none}
+body[data-sx-quiet="yes"] .sx-effect{display:none!important}
+body[data-sx-motion="off"] .action-card,body[data-sx-motion="off"] .player-seat{transition:none}
+.game-status,.panel{backdrop-filter:blur(6px)}
+.salem-board{perspective:1100px}
+.salem-board:not(.night):not(.conspiracy){background-image:radial-gradient(ellipse at 18% 20%,#b69b4b0a,transparent 52%),radial-gradient(ellipse at 80% 83%,#71a6840c,transparent 55%)}
+.player-seat.turn-owner{outline:1px solid #e7c18a9e;outline-offset:2px}
+.player-seat.turn-owner .seat-ident>img{box-shadow:0 0 0 3px #eac48153,0 0 22px #d6bb7f6b}
+.player-seat.dead .seat-ident>img{filter:grayscale(.82) brightness(.78)}
+.blackcat-holder .sx-cat-marker{animation:sxCatBadge 4s ease-in-out infinite}
+@keyframes sxCatBadge{0%,100%{box-shadow:0 0 8px #a9bcfa34;transform:translateY(0)}50%{box-shadow:0 0 18px #c3d4fe82;transform:translateY(-3px)}}
+.action-card:not(:disabled){will-change:transform}
+.action-card.selected{z-index:2}
+.status-chips{align-items:center}
+.sx-sheet-body{scrollbar-color:#a47e53 #0b1925;scrollbar-width:thin}
+.sx-library-head>p{margin:0}
+@media(max-width:610px){.sx-replay-scene{min-height:190px;padding:16px}.sx-replay-scene h3{font-size:19px}.sx-filter{gap:5px}.sx-filter button{font-size:10px;min-height:34px}.sx-end-actions .btn,.sx-replay-controls .btn{flex:1}.sx-guide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:340px){.sx-filter button{padding:6px 8px}.sx-guide-entry{padding:6px}.sx-guide-entry img{height:100px}}
+@media(prefers-reduced-motion:reduce){.sx-replay-scene,.blackcat-holder .sx-cat-marker{animation:none!important}.action-card{will-change:auto!important}}
