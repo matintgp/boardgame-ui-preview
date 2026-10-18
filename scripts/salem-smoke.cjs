@@ -318,3 +318,11 @@ test('shared custom dropdown preserves native select change and keyboard control
  assert.equal(trigger.getAttribute('aria-expanded'),'false');
  dom.window.close();
 });
+
+test('the Salem character panel is loaded before gameplay and shared dropdown assets exist',()=>{
+ const css=fs.readFileSync(path.join(base,'assets/town-hall.css'),'utf8');
+ assert.match(html,/assets\/town-hall\.js/);
+ assert.match(html,/assets\/town-hall\.css/);
+ assert.match(css,/townhall-draft-grid/);
+ for(const file of ['../assets/bg-select.css','../assets/bg-select.js'])assert.ok(fs.statSync(path.join(base,file)).size>500);
+});
