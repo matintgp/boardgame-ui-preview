@@ -33,6 +33,13 @@ function setup(size=6, role='town') {
   option.click();
   const qa=dom.window.__SalemQA;
   assert.ok(qa.state());
+  // Existing generic gameplay tests must be independent of the newly random Town Hall draft.
+  const state=qa.state();
+  state.current=0;
+  state.players[0].townHallId='giles';
+  state.players[0].character='Giles Corey';
+  state.players[0].abilityUses={};
+  qa.render();
   return {dom,doc,qa};
 }
 const click=(doc,selector)=>{
