@@ -4,7 +4,7 @@
 'use strict';
 const STORAGE='boardgame.salem.experience.v4';
 const $=s=>document.querySelector(s);
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults={motion:true,ambient:true,sfx:true,contrast:false,compact:false};
 let prefs={...defaults},state=null,cardDict={},selected=null,drawer=null,hud=null,lastPhase='',lastTurn=-1,tutorialStep=0;
 const steps=[
