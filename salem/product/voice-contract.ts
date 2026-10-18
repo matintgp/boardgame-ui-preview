@@ -1,5 +1,5 @@
 export type SalemPhase = 'room_setup'|'character_selection'|'role_reveal'|'opening_sleep'|'witch_vote'|'sunrise'|'turn'|'night'|'finished';
-export type VoiceChannel = 'witch-night'|'day-speaker';
+export type VoiceChannel = 'witch-night'|'day-speaker'|'day-listen';
 export type SalemVoiceAccess = {
   matchId: string;
   phase: SalemPhase;
@@ -17,6 +17,6 @@ export type SalemVoiceTokenResponse = {
 export function permittedChannel(state:SalemVoiceAccess):VoiceChannel|null {
   if (!state.isAlive) return null;
   if (state.phase==='witch_vote'&&state.isWitch) return 'witch-night';
-  if (state.phase==='turn'&&state.currentSpeakerId===state.authenticatedPlayerId) return 'day-speaker';
+  if (state.phase==='turn') return state.currentSpeakerId===state.authenticatedPlayerId ? 'day-speaker' : 'day-listen';
   return null;
 }
