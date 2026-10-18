@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {SalemLiveKitVoice} from './SalemLiveKitVoice';
+import {SalemPlayerReport} from './SalemPlayerReport';
 import {useSalemMatch} from '../hooks/useSalemMatch';
 import {remainingSeconds,upcomingPlayers} from '../match-protocol';
 import type {SalemCommand,SalemSnapshot} from '../match-protocol';
@@ -35,6 +36,7 @@ export function SalemProductRoom({matchId,viewerId,socketUrl,apiBase='/api',voic
  const [selectedCard,setSelectedCard]=useState<string|null>(null);
  const [error,setError]=useState<string|null>(null);
  const [tab,setTab]=useState<'table'|'hand'|'history'>('table');
+ const [reportTarget,setReportTarget]=useState<string|null>(null);
  const {state,connection,pending,send,refresh}=useSalemMatch({matchId,viewerId,apiBase,socketUrl,enabled:Boolean(matchId&&socketUrl)});
  useEffect(()=>{const id=setInterval(()=>setNow(Date.now()),250);return()=>clearInterval(id);},[]);
  const match=state?.public,privateView=state?.private;
@@ -75,6 +77,11 @@ export function SalemProductRoom({matchId,viewerId,socketUrl,apiBase='/api',voic
       {p.hasBlackCat&&<b>گربه سیاه</b>}
      </button>)}
    </section>}
+   {tab==='table'&&target&&state?.viewer==='player'&&<div className="sp-report-controls">
+      <span>بازیکن انتخاب‌شده: {match.players.find(p=>p.id===target)?.name}</span>
+      <button type="button" onClick={()=>setReportTarget(target)}>گزارش رفتار این بازیکن</button>
+    </div>}
+    {tab==='table'&&reportTarget&&state?.viewer==='player'&&<SalemPlayerReport matchId={match.matchId} targetId={reportTarget} apiBase={apiBase} onClose={()=>setReportTarget(null)}/>}
    {tab==='hand'&&<section className="sp-hand">
     {!privateView?<p>نمای تماشاچی؛ کارت‌های خصوصی نمایش داده نمی‌شوند.</p>:
      privateView.hand.map(card=><button key={card.instanceId} onClick={()=>setSelectedCard(card.instanceId)}
