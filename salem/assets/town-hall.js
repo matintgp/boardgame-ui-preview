@@ -22,7 +22,7 @@ const raw=[
 const all=raw.map(([id,en,fa,age,job,type,description,portrait])=>Object.freeze({
  id,en,fa,age,job,type,description,
  // Historical mood paintings adapted for demo; official commercial card artwork is not copied.
- image:base+portrait+'.webp',
+ image:'assets/townhall-art/'+id+'.webp',
  initialCharges:type==='once'?1:type==='twice'?2:null
 }));
 const byId=Object.fromEntries(all.map(c=>[c.id,c]));
