@@ -40,3 +40,18 @@
 @keyframes dawnCloud{from{transform:translateX(-7%)}to{transform:translateX(12%)}}
 @media(max-width:620px){.dawn-layout{padding:14px 12px;border-radius:22px;margin:9px auto 24px}.dawn-layout h2{font-size:30px}.dawn-private-voice{flex-wrap:wrap}.dawn-private-voice button{width:100%}.dawn-candidates{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.dawn-choice{padding:8px 3px;font-size:10px}.dawn-choice img{width:47px;height:47px}.dawn-moon{left:9%}.dawn-vote-actions .btn{flex:1}.dawn-result img{width:90px}}
 @media(prefers-reduced-motion:reduce){.dawn-moon,.dawn-cloud,.dawn-fog,.dawn-moon-symbol{animation:none}.dawn-choice,.dawn-track i{transition:none}}
+
+/* QA: overlay owns scrolling and keyboard focus; mobile safe-area accommodation. */
+body[data-salem-dawn="true"]{overflow:hidden;touch-action:pan-y}
+.salem-dawn{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.salem-dawn button:focus-visible{outline:3px solid #f1cc8c;outline-offset:3px}
+.dawn-layout{margin-bottom:max(24px,env(safe-area-inset-bottom));}
+.dawn-layout h2{overflow-wrap:anywhere;text-wrap:balance}
+@media(max-width:420px){
+ .dawn-layout{width:calc(100% - 12px);border-radius:18px;padding:12px 10px}
+ .dawn-private-voice,.dawn-vote,.dawn-allies{padding:12px}
+ .dawn-vote-actions{flex-wrap:wrap}
+ .dawn-layout>main{gap:5px}
+ .dawn-layout main>p{font-size:12px}
+ .dawn-timer{min-width:0;width:min(300px,100%)}
+}
