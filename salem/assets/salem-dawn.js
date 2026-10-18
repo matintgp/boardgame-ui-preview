@@ -83,6 +83,7 @@ function resolve(){
  match.blackCat=target;match.current=target;match.turn=1;match.round=1;
  match.action='choose';match.played=0;match.turnEndsAt=Date.now()+60000;
  api.log('گربه سیاه','گربه سیاه به '+api.member(target).name+' رسید؛ این بازیکن روز را شروع می‌کند.');
+ window.SalemExperience?.effect('cat',{label:'گربه سیاه · '+api.member(target).name});
  api.setPublic('گربه سیاه به '+api.member(target).name+' رسید.');
  change('sunrise');api.sound('rooster');api.render();
 }
