@@ -8,10 +8,14 @@ const base = path.resolve(__dirname, '../salem');
 const html = fs.readFileSync(path.join(base, 'index.html'), 'utf8');
 const raw = fs.readFileSync(path.join(base, 'assets/salem-engine.js'), 'utf8');
 const townHallSource=fs.readFileSync(path.join(base,'assets/town-hall.js'),'utf8');
+const dawnSource=fs.readFileSync(path.join(base,'assets/salem-dawn.js'),'utf8');
 // Test-only instrumentation, NEVER committed to the game bundle.
 const source = raw.replace(
   'window.SalemDemo=',
   'window.__SalemQA={state:()=>game,render,drawTwo,playCard,advanceTurn,revealTryal,eliminate,legalTarget,accuseLimit,activateTownHall,freePhipsConfess};window.SalemDemo='
+).replace(
+  'function beginFirstDawn(){',
+  'function beginFirstDawn(){if(window.__QA_SKIP_DAWN){game.phase="turn";game.dawnCompleted=true;game.turnEndsAt=Date.now()+60000;return;}'
 );
 assert.notEqual(source, raw, 'test instrumentation injection point');
 
@@ -25,7 +29,9 @@ function setup(size=6, role='town') {
   // Prevent asynchronous simulated bot timers surviving the jsdom instance in unit tests.
   dom.window.setTimeout = () => 0;
   dom.window.clearTimeout = () => {};
+  dom.window.__QA_SKIP_DAWN=true;
   dom.window.eval(townHallSource);
+  dom.window.eval(dawnSource);
   dom.window.eval(source);
   const doc=dom.window.document;
   doc.getElementById('playerCount').value=String(size);
@@ -328,4 +334,48 @@ test('the Salem character panel is loaded before gameplay and shared dropdown as
  assert.match(html,/assets\/town-hall\.css/);
  assert.match(css,/townhall-draft-grid/);
  for(const file of ['../assets/bg-select.css','../assets/bg-select.js'])assert.ok(fs.statSync(path.join(base,file)).size>500);
+});
+
+test('initial Dawn uses role-safe ballots, ties and abstentions',()=>{
+ const {dom,qa,doc}=setup(6,'witch');
+ const result=dom.window.SalemDawn.tally;
+ const people=[{id:0},{id:1},{id:2}];
+ assert.equal(result({0:2,1:2},people,()=>.99),2,'unanimous votes');
+ assert.equal(result({0:1,1:2},people,()=>0),1,'tie first target');
+ assert.equal(result({0:1,1:2},people,()=>.99),2,'tie last target');
+ assert.equal(result({0:0},people,()=>.2),0,'witch may choose herself');
+ assert.equal(result({},people,()=>.7),2,'all abstain produces random target');
+ // Local roles stay private visually; client-side data remains non-authoritative.
+ const s=qa.state();
+ s.players[0].witchEver=true;
+ dom.window.__QA_SKIP_DAWN=false;
+ const button=doc.querySelector('#modalBody .modal-actions button');
+ assert.ok(button);
+ button.click();
+ assert.equal(s.phase,'dawn');
+ assert.equal(s.initialDawn.stage,'sleep');
+ assert.ok(doc.querySelector('#salemDawn'));
+ s.initialDawn.endsAt=Date.now()-10;
+ dom.window.SalemDawn.stop();
+ dom.window.close();
+});
+
+test('ending the turn with zero played cards must draw two before handing over',()=>{
+ const {dom,doc,qa}=setup();
+ click(doc,'#modalBody .modal-actions button');
+ const state=qa.state();
+ const before=state.players[0].hand.length;
+ state.deck=['acc1','acc2','acc3',...state.deck];
+ qa.render();
+ click(doc,'[data-action="end"]');
+ assert.equal(state.players[0].hand.length,before+2);
+ assert.notEqual(state.current,0);
+ dom.window.close();
+});
+
+test('new opening-night dependencies and turn motion exist',()=>{
+ for(const name of ['salem-dawn.js','salem-dawn.css','salem-turn.js','salem-turn.css','salem-audio.js']){
+   assert.ok(fs.statSync(path.join(base,'assets',name)).size>400,'missing '+name);
+   assert.match(html,new RegExp('assets/'+name.replace(/[.]/g,'[.]')));
+ }
 });
