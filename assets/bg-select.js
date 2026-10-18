@@ -15,7 +15,7 @@ function close(focus=false){
  if(focus)trigger.focus({preventScroll:true});
 }
 function place(){
- if(!active)return;
+ if(!document.defaultView||!active)return;
  const r=active.trigger.getBoundingClientRect(),panel=active.pop;
  const spaceBelow=innerHeight-r.bottom-8,spaceAbove=r.top-8;
  const height=Math.min(panel.scrollHeight,300,Math.max(spaceBelow,spaceAbove)-8);
@@ -95,7 +95,7 @@ function enhance(select){
  const mo=new MutationObserver(sync);mo.observe(select,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled','selected','label']});
  sync();
 }
-function scan(){all('select:not([data-bg-enhanced])').forEach(enhance);}
+function scan(){if(!document.defaultView)return;all('select:not([data-bg-enhanced])').forEach(enhance);}
 document.addEventListener('pointerdown',e=>{if(active&&!active.host.contains(e.target)&&!active.pop.contains(e.target))close();},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active){e.stopPropagation();close(true);}});
 window.addEventListener('scroll',place,true);window.addEventListener('resize',place);
