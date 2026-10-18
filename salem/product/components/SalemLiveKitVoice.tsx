@@ -67,6 +67,7 @@ export function SalemLiveKitVoice({state,tokenEndpoint='/api/salem/voice-token'}
     {grant&&channel&&<LiveKitRoom key={state.matchId+':'+state.phaseVersion+':'+channel}
       token={grant.participant_token} serverUrl={grant.server_url}
       connect={true} audio={false} video={false}
+      options={{adaptiveStream:true,dynacast:true,audioCaptureDefaults:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}}
       onConnected={()=>setStatus('connected')}
       onDisconnected={()=>setStatus('idle')}
       onError={()=>setStatus('error')}>
