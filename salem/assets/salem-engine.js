@@ -40,7 +40,7 @@ function human(){return game?.players[0];}
 function living(){return game.players.filter(p=>p.alive);}
 function member(id){return game.players.find(p=>p.id===id);}
 function current(){return member(game.current);}
-function isMyTurn(){return game&&game.phase==='turn'&&game.current===0&&human().alive&&!running;}
+function isMyTurn(){return game&&game.phase==='turn'&&game.dawnCompleted===true&&game.current===0&&human().alive&&!running;}
 function dangerCount(){return game.players.reduce((v,p)=>v+p.tryals.filter(t=>t.type==='witch'&&t.revealed).length,0);}
 function log(t,m){game.logs.unshift({title:t,message:m,id:Date.now()+Math.random()});game.logs=game.logs.slice(0,50);}
 function save(){try{if(game)localStorage.setItem(SET_KEY,JSON.stringify(game));}catch(e){}}
@@ -177,7 +177,7 @@ function beginTownHallDraft(){
   const chosen=TOWN.byId[id];
   const burnt=game.townHallOffers.filter(v=>v!==id);
   const me=human();me.townHallId=id;me.character=chosen.en;me.portrait=chosen.image;me.abilityCharges=chosen.initialCharges;me.abilityUses={};
-  game.burnedTownHall.push(...burnt);game.townHallPending=false;
+  game.burnedTownHall.push(...burnt);game.townHallPending=false;game.phase='reveal';
   if(id==='mary'&&game.blackCat===0){
    const others=game.players.filter(p=>p.id!==0&&p.alive&&!hasTown(p,'mary'));
    game.blackCat=random(others)?.id??1;game.current=game.blackCat;
@@ -204,7 +204,7 @@ function start(){
   players.forEach(p=>{p.hand=deck.splice(0,3);});
   deck.splice(Math.min(9,Math.floor(deck.length*.23)),0,'conspiracy');
   deck.push('night');
-  game={schema:5,dawnCompleted:false,turnEndsAt:null,townHallOffers:characterDeal.hands[0],burnedTownHall:[...characterDeal.unused,...characterDeal.hands.slice(1).flatMap(h=>h.slice(1))],townHallPending:true,players,current:0,turn:1,round:1,phase:'turn',action:'choose',played:0,deck,discard:[],blackCat:0,totalWitches:witch,selectedTarget:null,pendingReveal:null,pendingRevealActor:null,pendingDraw:null,nightTarget:null,nightProtect:null,nightConfessed:false,nightSelection:null,winner:null,logs:[],lastPublic:'میز تشکیل شد. کارت‌ها بین بازیکن‌ها توزیع شدند.',room:$('#roomName').value.trim().slice(0,40)||'میز Salem',lastBreakdown:null};
+  game={schema:5,dawnCompleted:false,turnEndsAt:null,townHallOffers:characterDeal.hands[0],burnedTownHall:[...characterDeal.unused,...characterDeal.hands.slice(1).flatMap(h=>h.slice(1))],townHallPending:true,players,current:0,turn:1,round:1,phase:'draft',action:'choose',played:0,deck,discard:[],blackCat:null,totalWitches:witch,selectedTarget:null,pendingReveal:null,pendingRevealActor:null,pendingDraw:null,nightTarget:null,nightProtect:null,nightConfessed:false,nightSelection:null,winner:null,logs:[],lastPublic:'میز تشکیل شد. کارت‌ها بین بازیکن‌ها توزیع شدند.',room:$('#roomName').value.trim().slice(0,40)||'میز Salem',lastBreakdown:null};
   chosenCard=null;chosenTarget=null;secretOpen=false;rapid=false;token++;running=false;lastPhase=null;
   log('شروع پرونده',`میز ${n} نفره تشکیل شد. ابتدا کارت Town Hall انتخاب می‌شود.`);save();showGame();
   beginTownHallDraft();
@@ -232,7 +232,7 @@ function render(){
  if(!game)return; const me=human();
  if(game.phase!==lastPhase){lastPhase=game.phase;document.body.dataset.salemPhase=game.phase;}
  document.documentElement.style.setProperty('--accent',game.phase==='night'?'#8db3e5':game.phase==='conspiracy'?'#d98a91':'#d5ae71');
- let owner=current();let phaseTitle={turn:'روز · نوبت بازیکنان',dawn:'شب آغازین · شهر در خواب',conspiracy:'توطئه در Salem',night:'شب جادوگران',finished:'پرونده بسته شد'}[game.phase];
+ let owner=current();let phaseTitle={draft:'انتخاب شخصیت',reveal:'افشای نقش خصوصی',turn:'روز · نوبت بازیکنان',dawn:'شب آغازین · شهر در خواب',conspiracy:'توطئه در Salem',night:'شب جادوگران',finished:'پرونده بسته شد'}[game.phase];
  $('#roomLabel').textContent=game.room+' / '+(game.round||1);$('#statusTitle').textContent=game.winner? 'مسابقه تمام شد' : game.phase==='turn'?(game.current===0?'نوبت شماست':`نوبت ${owner?.name||'رقیب'}`):phaseTitle;
  $('#statusSubtitle').textContent=game.phase==='turn'?(game.current===0?(game.action==='play'?'حداقل یک کارت بازی کن؛ سپس می‌توانی نوبت را تمام کنی.':'دو کارت بکش یا یک کارت بازی کن.'):'بازیکن شبیه‌سازی‌شده در حال تصمیم‌گیری است.'):game.lastPublic;
  $('#turnBadge').textContent=`نوبت ${game.turn}`;$('#phaseBadge').textContent=phaseTitle;$('#aliveBadge').textContent=`${living().length} نفر زنده`;
@@ -309,7 +309,7 @@ function removeAlibiAccusations(target){
 }
 function playCard(by,handIndex,targetId,bot=false,destinationId=null,alibiMode=null){
  const owner=member(by);
- if(!owner?.alive||game.phase!=='turn'||by!==game.current||game.pendingReveal!=null)return false;
+ if(!owner?.alive||!game.dawnCompleted||game.phase!=='turn'||by!==game.current||game.pendingReveal!=null)return false;
  const key=owner.hand[handIndex],card=CARD[key],target=member(targetId);
  if(!card||!legalTarget(by,targetId,key))return false;
  if(key==='alibi'&&hasTown(owner,'will')&&!bot&&alibiMode==null){
@@ -463,7 +463,7 @@ function eliminate(id,why,fromMatchmaker=false){
  if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
 function drawTwo(by,count=2){
  const owner=member(by);
- if(!owner?.alive||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
+ if(!owner?.alive||!game.dawnCompleted||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
  if(by===0)window.SalemTurn?.drawn();
  let pulled=0,drawnKeys=[];
  for(let i=0;i<count;i++){
@@ -499,7 +499,7 @@ function endTurn(){
  log('پایان نوبت',`شما بعد از بازی ${game.played} کارت، نوبت را تمام کردید.`);advanceTurn();
 }
 function advanceTurn(){
- if(game.phase!=='turn'||game.winner||game.pendingReveal!=null)return;
+ if(!game.dawnCompleted||game.phase!=='turn'||game.winner||game.pendingReveal!=null)return;
  if(!living().length)return;
  let pos=game.current,next=null;
  // Stocks skips a player's next turn; multiple Stocks can skip multiple turns.
