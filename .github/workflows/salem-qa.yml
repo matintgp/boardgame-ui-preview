@@ -28,8 +28,7 @@ jobs:
           node-version: '22'
       - name: Syntax validation
         run: |
-          node --check salem/assets/salem-engine.js
-          node --check scripts/salem-smoke.cjs
+          for file in salem/assets/*.js assets/bg-select.js scripts/salem-smoke.cjs; do node --check "$file"; done
       - name: Install isolated test-only DOM dependency
         run: |
           mkdir -p /tmp/salem-smoke-deps
