@@ -28,3 +28,7 @@ jobs:
         run: npm install --no-fund --no-audit
       - name: Strict TypeScript typecheck
         run: npm run typecheck
+      - name: Verify standalone Next.js production bundle
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: npm run build
