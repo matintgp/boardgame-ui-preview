@@ -5,7 +5,7 @@ This is an **interactive frontend-only/offline simulator**, not a production mul
 ## Rules reference
 
 - Standard 4–10 player Tryal distribution uses the original rulebook counts (4: 18/1/1, 5: 23/1/1, 6: 27/2/1, 7: 32/2/1, 8: 29/2/1, 9: 33/2/1, 10: 27/2/1; Not a Witch / Witch / Constable).
-- First Black Cat holder starts (in this UX demo, the local human holds Black Cat for predictable onboarding).
+- The Black Cat is assigned in an opening Dawn phase by the Witch ballot; its holder (not necessarily the local human) takes the first one-minute turn. This online ballot and 60s deadline are custom UX house rules. The card is movable/removable like a Blue card.
 - On a normal turn, **either draw two cards and finish your turn, or play one or more cards**.
 - Black Conspiracy and Night cards interrupt drawing and resolve immediately; any remaining draw from the chosen draw action is completed afterward.
 - Red accusation cards stay until the target has **7 or more accusation points**. The player responsible for crossing the threshold chooses one concealed Tryal of the target; the red pile is discarded and no excess accusation is carried over.
@@ -76,3 +76,7 @@ Front-end only: show pending state and disabled buttons, submit typed commands, 
 ## Test status
 
 Automated smoke tests live in `scripts/salem-smoke.cjs` and run in `.github/workflows/salem-qa.yml`. Use the GitHub Actions result to verify passing tests. Syntax check and test suite cover player counts, secrecy of DOM projections, blocked out-of-turn actions, seven-accusation selection, interrupted draws and asset integrity. Full multiplayer security requires integration, concurrency and adversarial tests against the actual backend; **not completed here**.
+
+## New Dawn and audio specification
+
+See [`OPENING_DAWN_PRODUCT_HANDOFF.md`](OPENING_DAWN_PRODUCT_HANDOFF.md) for the actual simulator implementation, the timed opening-night sequence, restricted voice channels and the required backend protocol. The TypeScript LiveKit client lives under [`product/`](product/). It is not connected to a real server in this HTML preview.
