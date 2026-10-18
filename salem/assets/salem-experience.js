@@ -5,7 +5,7 @@
 const STORAGE='boardgame.salem.experience.v4';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const defaults={motion:true,ambient:true,sfx:true,contrast:false,compact:false};
+const defaults={motion:true,ambient:true,sfx:true,contrast:false,compact:false,largeText:false,quietMode:false};
 let prefs={...defaults},state=null,cardDict={},selected=null,drawer=null,hud=null,lastPhase='',lastTurn=-1,tutorialStep=0;
 const steps=[
  {title:'میز و نوبت‌ها',description:'بازیکنی که دور تصویرش روشن است، صاحب نوبت است. نفرهای بعدی در نوار بالای میز دیده می‌شوند.',target:'#tableBoard'},
@@ -22,6 +22,8 @@ function apply(){
  document.body.dataset.sxMotion=prefs.motion?'on':'off';
  document.body.dataset.sxContrast=prefs.contrast?'high':'normal';
  document.body.dataset.sxCompact=prefs.compact?'yes':'no';
+ document.body.dataset.sxLargeText=prefs.largeText?'yes':'no';
+ document.body.dataset.sxQuiet=prefs.quietMode?'yes':'no';
 }
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify(prefs));}catch{}}
 function make(){
@@ -56,7 +58,9 @@ function settings(){
   ['ambient','فضای صوتی شب و روز','به روشن‌بودن صدای مرورگر هم وابسته است.'],
   ['sfx','افکت‌های کوتاه بازی','افشا، کارت و گربه سیاه.'],
   ['contrast','کنتراست بیشتر','مناسب دید بهتر متن و دکمه‌ها.'],
-  ['compact','چیدمان فشرده','مناسب نمایشگر کوچک‌تر و لپ‌تاپ.']
+  ['compact','چیدمان فشرده','مناسب نمایشگر کوچک‌تر و لپ‌تاپ.'],
+  ['largeText','فونت درشت‌تر','برای خوانایی بیشتر روی موبایل و دسکتاپ.'],
+  ['quietMode','حالت تمرکز','کاهش جزئیات متحرک و عناصر غیرضروری.']
  ];
  open('تنظیمات بازی',toggles.map(([id,name,desc])=>'<label class="sx-setting"><span><strong>'+esc(name)+'</strong><small>'+esc(desc)+'</small></span><input type="checkbox" data-sx-setting="'+id+'" '+(prefs[id]?'checked':'')+'></label>').join('')+
  '<div class="sx-settings-footer"><button class="btn outline" data-sx-tour>شروع آموزش مرحله‌ای</button><button class="btn outline" data-sx-guide>کتابچه کارت‌ها</button><button class="btn outline" data-sx-audio>'+(window.SalemAudio?.isEnabled()?'خاموش‌کردن صدای محیط':'فعال‌کردن صدای محیط')+'</button></div>',body=>{
