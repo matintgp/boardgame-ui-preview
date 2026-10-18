@@ -19,6 +19,9 @@ const CARD={
   asylum:{label:'پناهگاه (Asylum)',kind:'blue',image:IMG.letter,help:'بازیکن را تا زمان حذف اثر، از یک حمله شبانه حفاظت می‌کند.'},
   scapegoat:{label:'سپر بلا (Scapegoat)',kind:'green',image:IMG.letter,help:'همه کارت‌های رو به روی یک نفر را به نفر دیگر منتقل می‌کند؛ بدون اثر روی خودت.'},
   curse:{label:'نفرین (Curse)',kind:'green',image:IMG.witch,help:'یک کارت آبیِ روی بازیکن دیگر را حذف می‌کند.'},
+  robbery:{label:'Robbery',kind:'green',image:IMG.letter,help:'کارت‌های دست بازیکن هدف را به نفر دیگری منتقل می‌کند.'},
+  arson:{label:'Arson',kind:'green',image:IMG.gavel,help:'همه کارت‌های دست یک بازیکن را می‌سوزاند.'},
+  matchmaker:{label:'Matchmaker',kind:'blue',image:IMG.evidence,help:'دو بازیکن را به هم مرتبط می‌کند؛ اثر جانبی روی حذف آن‌ها.'},
   stocks:{label:'بازداشت (Stocks)',kind:'blue',image:IMG.gavel,help:'بازیکن هدف نوبت بعدی را از دست می‌دهد.'},
   piety:{label:'پارسا (Piety)',kind:'blue',image:IMG.evidence,help:'تا زمان حذف کارت، از اتهام مستقیم قرمز جلوگیری می‌کند.'},
   conspiracy:{label:'Conspiracy',kind:'black',image:IMG.letter,help:'کارت‌های Tryal میان بازیکنان زنده جابه‌جا می‌شوند.'},
@@ -47,6 +50,8 @@ function legalTarget(by,targetId,key){
  if(CARD[key].kind==='red'&&b.effects.includes('piety'))return false;
  if(key==='scapegoat')return living().filter(p=>p.id!==by&&p.id!==targetId).length>0;
  if(key==='curse')return b.effects.some(x=>CARD[x]?.kind==='blue');
+ if((key==='robbery'||key==='arson')&&hasTown(b,'sarah'))return false;
+ if(key==='matchmaker'&&(hasTown(b,'mary')||b.effects.includes('matchmaker')))return false;
  return true;
 }
 function nextAfterBlack(){
@@ -69,7 +74,7 @@ function showLobby(){token++;running=false;$('#gamePage').hidden=true;$('#lobbyP
 function showGame(){ $('#lobbyPage').hidden=true;$('#gamePage').hidden=false;render();window.scrollTo(0,0); }
 function refreshLobby(){let n=Number($('#playerCount').value)||6;$('#seatCount').textContent=`${n} جایگاه`;$('#lobbySeats').innerHTML=cast.slice(0,n).map((v,i)=>`<div class="lobby-seat"><img src="${P}${v[2]}.webp" alt=""><div><b>${esc(v[0])}</b><small>${i?'بازیکن نمایشی':'میزبان · شما'}</small></div></div>`).join('');$('#resumeGame').hidden=!read();}
 function buildDeck(){
-  const counts={acc1:18,acc2:13,acc3:6,alibi:5,asylum:5,scapegoat:4,curse:3,stocks:2,piety:1};
+  const counts={acc1:18,acc2:13,acc3:6,alibi:5,asylum:5,scapegoat:4,curse:3,stocks:2,piety:1,robbery:1,arson:1,matchmaker:2};
   let cards=shuffle(Object.entries(counts).flatMap(([k,n])=>Array(n).fill(k)));
   return cards;
 }
@@ -285,12 +290,24 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null){
  owner.hand.splice(handIndex,1);
  if(card.kind==='green')game.discard.push(key);
  let body='';
- if(card.kind==='red'){
-  target.accusations+=card.value;target.redPile.push(key);
-  body=`${owner.name} با ${card.label}، ${card.value} اتهام روی ${target.name} گذاشت.`;
-  if(target.accusations>=7){
+ const useWillWitness=key==='alibi'&&hasTown(owner,'will')&&owner.willWitness===true;
+ owner.willWitness=false;
+ if(card.kind==='red'||useWillWitness){
+  const value=useWillWitness?7:key==='acc3'&&hasTown(target,'cotton')?1:card.value;
+  target.accusations+=value;target.redPile.push(useWillWitness?'witness':key==='acc3'&&hasTown(target,'cotton')?'accCotton':key);
+  body=`${owner.name} با ${useWillWitness?'Alibi به‌عنوان Witness':card.label}، ${value} اتهام روی ${target.name} گذاشت.`;
+  const limit=accuseLimit(target,owner);
+  if(target.accusations>=limit){
+   if(hasTown(owner,'abigail')){
+    game.discard.push(...owner.redPile);owner.redPile=[];owner.accusations=0;
+    log('توانایی ابیگیل','پس از اتهام نهایی، تمام اتهام‌های جلوی ابیگیل حذف شدند.');
+   }
+   if(hasTown(owner,'ann')){
+    bonusDraw(owner,2,{allowBlack:false});
+    log('توانایی آن','آن پیش از افشای Tryal دو کارت اضافی دریافت کرد.');
+   }
    target.accusations=0;
-   game.discard.push(...target.redPile);target.redPile=[];
+   game.discard.push(...target.redPile.filter(k=>k!=='witness'&&k!=='accCotton'));target.redPile=[];
    game.pendingReveal=target.id;game.pendingRevealActor=by;
   }
  }else if(key==='alibi'){
@@ -305,6 +322,18 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null){
  }else if(key==='piety'){
   target.effects.push('piety');
   body=`${owner.name}، کارت Piety را برای ${target.name} قرار داد.`;
+ }else if(key==='arson'){
+  game.discard.push(...target.hand);target.hand=[];
+  body=`${owner.name} با Arson کارت‌های دست ${target.name} را سوزاند.`;
+ }else if(key==='robbery'){
+  const options=living().filter(p=>p.id!==target.id&&p.id!==owner.id);
+  const dest=random(options);
+  if(!dest)return false;
+  dest.hand.push(...target.hand);target.hand=[];
+  body=`${owner.name} کارت‌های دست ${target.name} را به ${dest.name} داد.`;
+ }else if(key==='matchmaker'){
+  target.effects.push('matchmaker');
+  body=`${owner.name} برای ${target.name} کارت پیوند گذاشت.`;
  }else if(key==='curse'){
   const index=target.effects.findIndex(k=>CARD[k]?.kind==='blue');
   const removed=target.effects.splice(index,1)[0];game.discard.push(removed);
