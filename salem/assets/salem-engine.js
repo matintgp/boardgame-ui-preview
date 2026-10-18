@@ -22,6 +22,7 @@ const CARD={
   robbery:{label:'Robbery',kind:'green',image:IMG.letter,help:'کارت‌های دست بازیکن هدف را به نفر دیگری منتقل می‌کند.'},
   arson:{label:'Arson',kind:'green',image:IMG.gavel,help:'همه کارت‌های دست یک بازیکن را می‌سوزاند.'},
   matchmaker:{label:'Matchmaker',kind:'blue',image:IMG.evidence,help:'دو بازیکن را به هم مرتبط می‌کند؛ اثر جانبی روی حذف آن‌ها.'},
+  blackcat:{label:'گربه سیاه (Black Cat)',kind:'blue',image:IMG.cat,help:'علامت آشکار و منفی؛ صاحبش در Conspiracy در معرض افشای Tryal است.'},
   stocks:{label:'بازداشت (Stocks)',kind:'blue',image:IMG.gavel,help:'بازیکن هدف نوبت بعدی را از دست می‌دهد.'},
   piety:{label:'پارسا (Piety)',kind:'blue',image:IMG.evidence,help:'تا زمان حذف کارت، از اتهام مستقیم قرمز جلوگیری می‌کند.'},
   conspiracy:{label:'Conspiracy',kind:'black',image:IMG.letter,help:'کارت‌های Tryal میان بازیکنان زنده جابه‌جا می‌شوند.'},
@@ -49,7 +50,7 @@ function legalTarget(by,targetId,key){
  if(CARD[key].kind==='blue'&&living().length<=2)return false;
  if(CARD[key].kind==='red'&&b.effects.includes('piety'))return false;
  if(key==='scapegoat')return living().filter(p=>p.id!==by&&p.id!==targetId).length>0;
- if(key==='curse')return b.effects.some(x=>CARD[x]?.kind==='blue');
+ if(key==='curse')return b.effects.some(x=>CARD[x]?.kind==='blue')||game.blackCat===targetId;
  if((key==='robbery'||key==='arson')&&hasTown(b,'sarah'))return false;
  if(key==='matchmaker'&&(hasTown(b,'mary')||b.effects.includes('matchmaker')))return false;
  return true;
@@ -377,9 +378,15 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null,alibiMode=n
  }else if(key==='matchmaker'){
   target.effects.push('matchmaker');
   body=`${owner.name} برای ${target.name} کارت پیوند گذاشت.`;
+ }else if(key==='blackcat'){
+  if(game.blackCat!=null&&game.blackCat!==target.id)game.discard.push('blackcat');
+  game.blackCat=target.id;
+  body=`${owner.name} گربه سیاه را مقابل ${target.name} قرار داد.`;
  }else if(key==='curse'){
-  const index=target.effects.findIndex(k=>CARD[k]?.kind==='blue');
-  const removed=target.effects.splice(index,1)[0];game.discard.push(removed);
+  let removed;
+  if(game.blackCat===target.id){removed='blackcat';game.blackCat=null;}
+  else {const index=target.effects.findIndex(k=>CARD[k]?.kind==='blue');removed=target.effects.splice(index,1)[0];}
+  if(removed)game.discard.push(removed);
   body=`${owner.name} با Curse کارت آبی ${CARD[removed]?.label||removed} را از جلوی ${target.name} برداشت.`;
  }else if(key==='scapegoat'){
   const other=destinationId!=null?member(destinationId):random(living().filter(p=>p.id!==targetId&&p.id!==by));
@@ -387,6 +394,7 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null,alibiMode=n
   other.redPile.push(...target.redPile);
   other.accusations+=target.accusations;
   other.effects.push(...target.effects);
+  if(game.blackCat===target.id)game.blackCat=other.id;
   target.redPile=[];target.accusations=0;target.effects=[];
   body=`${owner.name} تمام کارت‌های رو‌به‌روی ${target.name} را به ${other.name} منتقل کرد.`;
   if(other.accusations>=7){
