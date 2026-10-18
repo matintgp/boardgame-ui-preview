@@ -134,3 +134,9 @@ p,small,.field,.rule-tile,.hint-minor,.hero-body p{overflow-wrap:break-word;word
  .rule-tile p{font-size:11px}
  .eyebrow{font-size:9px}
 }
+
+/* Audit: role modal owns the keyboard and scroll surface. */
+body:has(.overlay:not([hidden])){overflow:hidden}
+.overlay:not([hidden]) .modal{overscroll-behavior:contain}
+.overlay .modal button:focus-visible{outline:2px solid #efcd91;outline-offset:3px}
+@media(max-width:540px){.overlay{padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))}.overlay .modal{max-height:calc(100dvh - 16px)}.overlay .modal-body{padding:14px}}
