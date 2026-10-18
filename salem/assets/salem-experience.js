@@ -60,7 +60,7 @@ function settings(){
  ];
  open('تنظیمات بازی',toggles.map(([id,name,desc])=>'<label class="sx-setting"><span><strong>'+esc(name)+'</strong><small>'+esc(desc)+'</small></span><input type="checkbox" data-sx-setting="'+id+'" '+(prefs[id]?'checked':'')+'></label>').join('')+
  '<div class="sx-settings-footer"><button class="btn outline" data-sx-tour>شروع آموزش مرحله‌ای</button><button class="btn outline" data-sx-guide>کتابچه کارت‌ها</button><button class="btn outline" data-sx-audio>'+(window.SalemAudio?.isEnabled()?'خاموش‌کردن صدای محیط':'فعال‌کردن صدای محیط')+'</button></div>',body=>{
-  body.querySelectorAll('[data-sx-setting]').forEach(el=>el.addEventListener('change',()=>{prefs[el.dataset.sxSetting]=el.checked;save();apply();}));
+  body.querySelectorAll('[data-sx-setting]').forEach(el=>el.addEventListener('change',()=>{const name=el.dataset.sxSetting;prefs[name]=el.checked;save();apply();if(name==='ambient'){if(el.checked&&window.SalemAudio?.isEnabled())window.SalemAudio?.night();else window.SalemAudio?.stop();}}));
   body.querySelector('[data-sx-tour]')?.addEventListener('click',()=>{close();tutorial(0);});
   body.querySelector('[data-sx-guide]')?.addEventListener('click',()=>guide());
   body.querySelector('[data-sx-audio]')?.addEventListener('click',()=>{window.SalemAudio?.toggle();settings();});
