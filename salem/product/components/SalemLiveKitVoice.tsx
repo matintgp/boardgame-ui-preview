@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { LiveKitRoom, RoomAudioRenderer, useRoomContext } from '@livekit/components-react';
 import type { SalemVoiceAccess, SalemVoiceTokenResponse, VoiceChannel } from '../voice-contract';
 import { permittedChannel } from '../voice-contract';
+import { SalemVoiceDiagnostics } from './SalemVoiceDiagnostics';
 
 type Props = { state: SalemVoiceAccess; tokenEndpoint?: string };
 type Status = 'idle'|'connecting'|'connected'|'blocked'|'error';
@@ -32,6 +33,7 @@ export function SalemLiveKitVoice({state,tokenEndpoint='/api/salem/voice-token'}
   const channel:VoiceChannel|null=permittedChannel(state);
   const [status,setStatus]=useState<Status>('idle');
   const [grant,setGrant]=useState<SalemVoiceTokenResponse|null>(null);
+  const [retry,setRetry]=useState(0);
   const canSpeak=channel==='witch-night'||channel==='day-speaker';
 
   useEffect(()=>{
@@ -59,7 +61,7 @@ export function SalemLiveKitVoice({state,tokenEndpoint='/api/salem/voice-token'}
     }
     void obtainGrant(channel);
     return ()=>controller.abort();
-  },[channel,tokenEndpoint,state.matchId,state.phaseVersion,state.authenticatedPlayerId]);
+  },[channel,tokenEndpoint,state.matchId,state.phaseVersion,state.authenticatedPlayerId,retry]);
 
   return <section dir="rtl" className="salem-voice" aria-label="ارتباط صوتی سالم">
     <strong>{channel==='witch-night'?'اتاق اختصاصی ساحره‌ها':channel==='day-speaker'?'نوبت صحبت شما':channel==='day-listen'?'در حال شنیدن صحبت نوبت':'میکروفون بسته است'}</strong>
@@ -73,7 +75,9 @@ export function SalemLiveKitVoice({state,tokenEndpoint='/api/salem/voice-token'}
       onError={()=>setStatus('error')}>
       <RoomAudioRenderer/>
       <MicrophoneControl canSpeak={canSpeak}/>
+      <SalemVoiceDiagnostics/>
     </LiveKitRoom>}
+    {status==='error'&&<button type="button" onClick={()=>setRetry(v=>v+1)}>تلاش مجدد برای تماس</button>}
     <small>شرکت‌کننده بدون مجوز سرور نه می‌تواند میکروفون منتشر کند و نه به اتاق ساحره‌ها وارد شود.</small>
   </section>;
 }
