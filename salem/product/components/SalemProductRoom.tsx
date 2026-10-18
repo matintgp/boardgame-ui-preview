@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {SalemLiveKitVoice} from './SalemLiveKitVoice';
 import {SalemPlayerReport} from './SalemPlayerReport';
+import {SalemPhaseExperience} from './SalemPhaseExperience';
 import {useSalemMatch} from '../hooks/useSalemMatch';
 import {remainingSeconds,upcomingPlayers} from '../match-protocol';
 import type {SalemCommand,SalemSnapshot} from '../match-protocol';
@@ -59,6 +60,9 @@ export function SalemProductRoom({matchId,viewerId,socketUrl,apiBase='/api',voic
    <div><small>SALEM 1692 · SECURE MATCH</small><h1>{phaseNames[match.phase]||match.phase}</h1><span>{match.players.filter(p=>p.alive).length} بازیکن زنده · نوبت {match.turnNumber}</span></div>
    <div className="sp-network"><span className={'sp-light '+connection}/><strong>{connection==='online'?'متصل':connection==='reconnecting'?'در حال اتصال مجدد…':'آفلاین'}</strong><time>{formatSeconds(seconds)}</time></div>
   </header>
+  <SalemPhaseExperience key={match.matchId+':'+match.phaseVersion} snapshot={state!} timeLeft={seconds} busy={pending}
+   onVote={id=>send({kind:'black_cat_vote',targetPlayerId:id})}
+   onCharacter={id=>send({kind:'choose_character',characterId:id})}/>
   <div className="sp-queue" aria-label="ترتیب نوبت‌ها">
    {queue.map((p,i)=><div key={p.id} className={'sp-player-queue '+(!i?'active':'')}>
      <img alt="" src={p.portraitUrl}/><span>{p.name}</span><small>{i?'نفر بعد':'نوبت فعلی'}</small></div>)}
@@ -97,14 +101,6 @@ export function SalemProductRoom({matchId,viewerId,socketUrl,apiBase='/api',voic
     {match.publicEvents.slice().reverse().map(ev=><article key={ev.id}><time>{new Date(ev.occurredAt).toLocaleTimeString('fa-IR')}</time><p>{ev.message}</p></article>)}
    </section>}
   </div>
-  {match.phase==='town_hall'&&privateView&&<section className="sp-choices"><h2>انتخاب یکی از شخصیت‌ها</h2>
-   {privateView.offeredCharacters.map(id=><button key={id} disabled={pending} onClick={()=>void command({kind:'choose_character',characterId:id})}>{id}</button>)}
-  </section>}
-  {witchVote&&<section className="sp-choices"><h2>رأی مخفی گربه سیاه</h2>
-   {match.players.filter(p=>p.alive).map(p=><button key={p.id} disabled={pending} onClick={()=>void command({kind:'black_cat_vote',targetPlayerId:p.id})}>{p.name}</button>)}
-   <button disabled={pending} onClick={()=>void command({kind:'black_cat_vote',targetPlayerId:null})}>رأی ممتنع</button>
-   <p>رأی سایر ساحره‌ها به شما ارسال نمی‌شود. سرور نتیجه را تعیین می‌کند.</p>
-  </section>}
   {voiceAccess&&<SalemLiveKitVoice key={voiceAccess.phaseVersion+':'+voiceAccess.authenticatedPlayerId} state={voiceAccess} tokenEndpoint={voiceTokenEndpoint}/>}
   {error&&<p className="sp-error" role="alert">{error}</p>}
   {state?.viewer==='spectator'&&<p className="sp-disclaimer">نمای تماشاچی: هیچ اطلاعات مخفی دریافت نشده است.</p>}
