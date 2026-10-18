@@ -7,6 +7,7 @@ const { JSDOM } = require('jsdom');
 const base = path.resolve(__dirname, '../salem');
 const html = fs.readFileSync(path.join(base, 'index.html'), 'utf8');
 const raw = fs.readFileSync(path.join(base, 'assets/salem-engine.js'), 'utf8');
+const townHallSource=fs.readFileSync(path.join(base,'assets/town-hall.js'),'utf8');
 // Test-only instrumentation, NEVER committed to the game bundle.
 const source = raw.replace(
   'window.SalemDemo=',
@@ -21,11 +22,15 @@ function setup(size=6, role='town') {
     pretendToBeVisual:true
   });
   dom.window.scrollTo = () => {};
+  dom.window.eval(townHallSource);
   dom.window.eval(source);
   const doc=dom.window.document;
   doc.getElementById('playerCount').value=String(size);
   doc.getElementById('testRole').value=role;
   doc.getElementById('startGame').click();
+  const option=doc.querySelector('[data-townhall-choose]');
+  assert.ok(option,'Town Hall selection must open before private role reveal');
+  option.click();
   const qa=dom.window.__SalemQA;
   assert.ok(qa.state());
   return {dom,doc,qa};
