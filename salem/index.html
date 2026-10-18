@@ -11,13 +11,14 @@
 <link rel="stylesheet" href="assets/town-hall.css">
 <link rel="stylesheet" href="assets/salem-dawn.css">
 <link rel="stylesheet" href="assets/salem-turn.css">
+<link rel="stylesheet" href="assets/salem-experience.css">
 <link rel="stylesheet" href="../assets/bg-select.css">
 </head>
 <body>
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand"><div class="brand-badge">☾</div><div><strong>BoardGame <span> / SALEM 1692</span></strong><small>دموی تعاملی بازی کارت‌محور</small></div></div>
-    <div class="header-actions"><span class="demo-label">FRONTEND DEMO</span><a class="btn ghost" href="../index.html#game/salem" aria-label="بازگشت به سایت بردگیم">← سایت بردگیم</a><button class="btn ghost" id="homeButton">لابی</button><button class="btn outline" id="helpButton">راهنمای قوانین</button></div>
+    <div class="header-actions"><span class="demo-label">FRONTEND DEMO</span><a class="btn ghost" href="../index.html#game/salem" aria-label="بازگشت به سایت بردگیم">← سایت بردگیم</a><button class="btn ghost" id="homeButton">لابی</button><button class="btn outline" id="helpButton">راهنمای قوانین</button><button class="btn outline" id="experienceSettingsButton">تنظیمات نمایش</button></div>
   </header>
   <main id="lobbyPage">
     <div class="lobby-layout">
@@ -47,7 +48,7 @@
       </aside>
       <div class="center-col">
         <section class="panel board-panel"><div class="section-title board-head"><div><span class="eyebrow">THE TOWN TABLE</span><h2>میز محاکمه Salem</h2><p id="boardDescription">برای انتخاب هدف روی یک بازیکن بزن.</p></div><div class="board-head-extra"><span class="tag" id="selectedTarget">هدفی انتخاب نشده</span></div></div><div id="tableBoard" class="salem-board"></div></section>
-        <section class="panel panel-pad"><div class="section-title"><div><h2>کارت‌های دست تو</h2><p id="handDescription">یک کارت انتخاب کن و با کلیک روی بازیکن هدف از آن استفاده کن.</p></div><span class="tag" id="handCount">۰ کارت</span></div><div id="handCards" class="hand"></div></section>
+        <section class="panel panel-pad"><div class="section-title"><div><h2>کارت‌های دست تو</h2><p id="handDescription">یک کارت انتخاب کن و با کلیک روی بازیکن هدف از آن استفاده کن.</p></div><div class="sx-hand-controls"><span class="tag" id="handCount">۰ کارت</span><button class="btn tiny outline" id="inspectCardButton" type="button">بررسی کارت</button></div></div><div id="handCards" class="hand"></div></section>
       </div>
       <aside class="side-col">
         <section class="panel panel-pad"><div class="section-title"><div><h2>وضعیت فعلی بازی</h2><p>هر تصمیم، یک مرحله جلوتر</p></div></div><div id="phaseTimeline" class="timeline"></div></section>
@@ -64,6 +65,7 @@
 <script src="assets/salem-dawn.js"></script>
 <script src="assets/salem-audio.js"></script>
 <script src="assets/salem-turn.js"></script>
+<script src="assets/salem-experience.js"></script>
 <script src="assets/salem-engine.js"></script>
 <script src="../assets/bg-select.js" defer></script>
 </body></html>
