@@ -503,7 +503,7 @@ test('Salem Experience UI connects timeline, guide, tutorial, settings and endga
  assert.ok(secrets.length>0);
  assert.equal(doc.querySelector('.sx-hud')?.textContent.includes('witchEver'),false);
  const recap=exp.endgame({...state,winner:'town'});
- assert.match(recap,/شهر پیروز شد/);
+ assert.match(recap,/پیروزی شهروندان/);
  dom.window.close();
 });
 
