@@ -469,3 +469,50 @@ test('Night report survives restoring a saved match without restarting the timer
  assert.ok(qa.state().turnEndsAt>Date.now());
  dom.window.close();
 });
+
+
+test('Salem Experience UI connects timeline, guide, tutorial, settings and endgame without revealing private roles',()=>{
+ const {dom,doc,qa}=setup();
+ const js=fs.readFileSync(path.join(base,'assets/salem-experience.js'),'utf8');
+ dom.window.eval(js);
+ doc.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+ const exp=dom.window.SalemExperience;
+ assert.ok(exp,'experience module should be loaded');
+ const state=qa.state();
+ exp.catalog({acc1:{kind:'red',label:'اتهام',image:'assets/gavel_of_judgment_in_candlelit_salem.webp',help:'اتهام یک'}});
+ exp.update(state);
+ assert.ok(doc.querySelector('#salemExperienceHud'),'turn order HUD');
+ assert.ok(doc.querySelector('[data-sx-settings]'),'settings action');
+ exp.settings();
+ assert.match(doc.querySelector('#sxBody').textContent,/انیمیشن/);
+ const settings=doc.querySelector('[data-sx-setting="motion"]');
+ assert.ok(settings);
+ settings.checked=false;
+ settings.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+ assert.equal(exp.getPrefs().motion,false);
+ exp.tutorial(0);
+ assert.match(doc.querySelector('#sxTitle').textContent,/آموزش تعاملی/);
+ doc.querySelector('[data-tutorial-next]').click();
+ assert.match(doc.querySelector('#sxBody').textContent,/کارت/);
+ exp.guide();
+ assert.ok(doc.querySelector('[data-guide-card="acc1"]'));
+ exp.inspect('acc1');
+ assert.match(doc.querySelector('#sxBody').textContent,/اتهام یک/);
+ exp.close();
+ const secrets=state.players.flatMap(p=>p.tryals.map(t=>t.type)).filter(t=>t==='witch');
+ assert.ok(secrets.length>0);
+ assert.equal(doc.querySelector('.sx-hud')?.textContent.includes('witchEver'),false);
+ const recap=exp.endgame({...state,winner:'town'});
+ assert.match(recap,/شهر پیروز شد/);
+ dom.window.close();
+});
+
+test('Salem Experience is included on the live page with responsive and reduced-motion styling',()=>{
+ assert.match(html,/salem-experience[.]css/);
+ assert.match(html,/salem-experience[.]js/);
+ const css=fs.readFileSync(path.join(base,'assets/salem-experience.css'),'utf8');
+ assert.match(css,/prefers-reduced-motion/);
+ assert.match(css,/max-width:610px/);
+ assert.match(css,/sx-hud/);
+ assert.match(css,/sx-guide-grid/);
+});
