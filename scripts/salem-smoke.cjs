@@ -425,3 +425,47 @@ test('turn clock expires once and reports public owner; timer markup is present'
  dom.window.SalemTurn.stop();
  dom.window.close();
 });
+
+
+test('Black Cat is discarded rather than magically transferred when its owner dies',()=>{
+ const {dom,qa}=setup(6);
+ const state=qa.state();
+ state.blackCat=1;
+ const before=state.discard.filter(x=>x==='blackcat').length;
+ qa.eliminate(1,'regression');
+ assert.equal(state.blackCat,null,'no random replacement owner');
+ assert.equal(state.discard.filter(x=>x==='blackcat').length,before+1);
+ dom.window.close();
+});
+
+test('Black Cat is discarded when game reaches two surviving players',()=>{
+ const {dom,qa}=setup(6);
+ const state=qa.state();
+ state.blackCat=0;
+ for(const p of state.players.slice(3))p.alive=false;
+ assert.equal(state.players.filter(p=>p.alive).length,3);
+ qa.eliminate(1,'regression');
+ assert.equal(state.players.filter(p=>p.alive).length,2);
+ assert.equal(state.blackCat,null);
+ assert.equal(state.discard.includes('blackcat'),true);
+ dom.window.close();
+});
+
+test('Night report survives restoring a saved match without restarting the timer',()=>{
+ const {dom,doc,qa}=setup();
+ const state=qa.state();
+ state.phase='night-report';
+ state.turnEndsAt=null;
+ state.nightReport='گزارش شب برای ادامه بازی';
+ qa.render();
+ click(doc,'#homeButton');
+ assert.equal(doc.querySelector('#resumeGame').hidden,false);
+ click(doc,'#resumeGame');
+ assert.equal(doc.querySelector('#overlay').hidden,false);
+ assert.match(doc.querySelector('#modalBody').textContent,/گزارش شب برای ادامه بازی/);
+ assert.equal(qa.state().phase,'night-report');
+ click(doc,'#modalBody .modal-actions button');
+ assert.equal(qa.state().phase,'turn');
+ assert.ok(qa.state().turnEndsAt>Date.now());
+ dom.window.close();
+});
