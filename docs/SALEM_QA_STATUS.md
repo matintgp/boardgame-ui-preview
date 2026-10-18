@@ -1,7 +1,7 @@
 # Salem smoke test — latest verified pass
 
 - Result: **PASS** (all automated tests succeeded)
-- Tested Git commit: e8496b1e717a4f81c22b1b09924617ea1fbdeb19
-- Run: https://github.com/matintgp/boardgame-ui-preview/actions/runs/39108582605
+- Tested Git commit: 79cba140736d89f633cc24bd5a61b1099d3fb914
+- Run: https://github.com/matintgp/boardgame-ui-preview/actions/runs/39110403717
 
 This is a frontend smoke test, not a security certification.
