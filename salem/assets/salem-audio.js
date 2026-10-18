@@ -11,7 +11,7 @@ function quiet(){
  if(ambient){try{ambient.gain.gain.setTargetAtTime(.0001,context.currentTime,.24);const node=ambient;setTimeout(()=>{try{node.osc.stop();node.osc.disconnect();node.gain.disconnect();}catch(e){}},900);}catch(e){}ambient=null;}
 }
 function night(){
- quiet();if(!enabled)return;initAudio();if(!context)return;
+ quiet();if(!enabled||window.SalemExperience?.getPrefs?.().ambient===false)return;initAudio();if(!context)return;
  try{
  const osc=context.createOscillator(),gain=context.createGain(),filter=context.createBiquadFilter();
  osc.type='sine';osc.frequency.value=88;filter.type='lowpass';filter.frequency.value=200;
@@ -25,11 +25,29 @@ function sunrise(){
  audio.volume=.65;dayAudio=audio;
  audio.play().catch(()=>{}); // browser may block autoplay; user controls sound
 }
+function cue(kind){
+ if(!enabled||window.SalemExperience?.getPrefs?.().sfx===false)return;
+ initAudio();if(!context)return;
+ try{
+  const osc=context.createOscillator(),gain=context.createGain();
+  const now=context.currentTime;
+  const notes={cat:[150,81,.34],card:[320,475,.16],reveal:[640,210,.36],victory:[280,550,.5]};
+  const [first,last,length]=notes[kind]||[360,280,.2];
+  osc.type=kind==='reveal'?'triangle':'sine';
+  osc.frequency.setValueAtTime(first,now);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(40,last),now+length);
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(.04,now+.024);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+length);
+  osc.connect(gain);gain.connect(context.destination);osc.start(now);osc.stop(now+length+.04);
+  osc.onended=()=>{try{osc.disconnect();gain.disconnect();}catch{}};
+ }catch{}
+}
 function toggle(){
  enabled=!enabled;
  if(enabled)initAudio();else{quiet();if(dayAudio)dayAudio.pause();}
  if(enabled&&document.querySelector('#salemDawn:not(.sunrise)'))night();
  return enabled;
 }
-window.SalemAudio={toggle,isEnabled:()=>enabled,night,sunrise,stop:()=>{quiet();if(dayAudio)dayAudio.pause();}};
+window.SalemAudio={toggle,cue,isEnabled:()=>enabled,night,sunrise,stop:()=>{quiet();if(dayAudio)dayAudio.pause();}};
 })();
