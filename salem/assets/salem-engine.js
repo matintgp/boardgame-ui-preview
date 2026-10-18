@@ -94,8 +94,11 @@ function effectiveTown(p){
  return null;
 }
 function hasTown(p,id){return Boolean(p?.alive&&effectiveTown(p)?.id===id);}
-function availableTown(p){const c=effectiveTown(p);return c?.initialCharges==null?null:Math.max(0,p?.abilityCharges??c.initialCharges);}
-function spendTown(p){if(availableTown(p)==null||availableTown(p)<=0)return false;p.abilityCharges--;return true;}
+function availableTown(p){const c=effectiveTown(p);return c?.initialCharges==null?null:Math.max(0,p?.abilityUses?.[c.id]??c.initialCharges);}
+function spendTown(p){
+ const c=effectiveTown(p);if(!c||availableTown(p)==null||availableTown(p)<=0)return false;
+ p.abilityUses??={};p.abilityUses[c.id]=availableTown(p)-1;p.abilityCharges=p.abilityUses[c.id];return true;
+}
 function accuseLimit(target,actor=null){
  if(!target)return 7;
  const george=hasTown(target,'george');
@@ -133,7 +136,7 @@ function revealTownIntro(){
  const me=human(),witch=me.tryals.some(t=>t.type==='witch'),guard=me.tryals.some(t=>t.type==='constable');
  const role=witch?'جادوگر':guard?'کلانتر':'شهروند',art=witch?IMG.witch:guard?IMG.guard:IMG.evidence;
  const town=townCard(me);
- showModal('کارت‌های شخصی شما',`<div class="reveal-layout"><img src="${art}" alt="کارت نقش ${role}"><div><span class="eyebrow">PRIVATE REVEAL</span><h3>${role}</h3><div class="info-line"><small>شخصیت انتخاب‌شده</small><strong>${esc(town?.fa||me.character)} / ${esc(town?.en||'')}</strong></div><div class="info-line"><small>قابلیت شخصیت</small><strong>${esc(town?.description||'')}</strong></div><div class="info-line"><small>Tryal خصوصی</small><strong>${me.tryals.map(t=>TRIALS[t.type].label).join(' · ')}</strong></div><div class="info-line"><small>هدف</small><strong>${witch?'بقای تیم جادوگران و حذف شهروندان':'پیداکردن کارت‌های Witch و افشای همه آن‌ها'}</strong></div><p>Tryalهای دیگران محرمانه می‌مانند. کارت شخصیت شما عمومی است.</p></div></div>`,[{label:'ورود به میز',primary:true,fn:()=>{secretOpen=false;render();}}]);
+ showModal('کارت‌های شخصی شما',`<div class="reveal-layout"><img src="${art}" alt="کارت نقش ${role}"><div><span class="eyebrow">PRIVATE REVEAL</span><h3>${role}</h3><div class="info-line"><small>شخصیت انتخاب‌شده</small><strong>${esc(town?.fa||me.character)} / ${esc(town?.en||'')}</strong></div><div class="info-line"><small>قابلیت شخصیت</small><strong>${esc(town?.description||'')}</strong></div><div class="info-line"><small>Tryal خصوصی</small><strong>${me.tryals.map(t=>TRIALS[t.type].label).join(' · ')}</strong></div><div class="info-line"><small>هدف</small><strong>${witch?'بقای تیم جادوگران و حذف شهروندان':'پیداکردن کارت‌های Witch و افشای همه آن‌ها'}</strong></div><p>Tryalهای دیگران محرمانه می‌مانند. کارت شخصیت شما عمومی است.</p></div></div>`,[{label:'ورود به میز',primary:true,fn:()=>{secretOpen=false;render();if(game.current!==0)queueBot();}}]);
 }
 function beginTownHallDraft(){
  const offers=game.townHallOffers||[];
@@ -149,8 +152,12 @@ function beginTownHallDraft(){
   if(!game.townHallOffers.includes(id))return;
   const chosen=TOWN.byId[id];
   const burnt=game.townHallOffers.filter(v=>v!==id);
-  const me=human();me.townHallId=id;me.character=chosen.en;me.portrait=chosen.image;me.abilityCharges=chosen.initialCharges;
-  game.burnedTownHall.push(...burnt);game.townHallPending=false;game.townHallOffers=[];
+  const me=human();me.townHallId=id;me.character=chosen.en;me.portrait=chosen.image;me.abilityCharges=chosen.initialCharges;me.abilityUses={};
+  game.burnedTownHall.push(...burnt);game.townHallPending=false;
+  if(id==='mary'&&game.blackCat===0){
+   const others=game.players.filter(p=>p.id!==0&&p.alive&&!hasTown(p,'mary'));
+   game.blackCat=random(others)?.id??1;game.current=game.blackCat;
+  }game.townHallOffers=[];
   log('شخصیت انتخاب شد',`${me.name} شخصیت ${chosen.fa} را انتخاب کرد. ${burnt.length?'یک کارت دیگر سوزانده شد.':'بازی با یک کارت Town Hall انجام می‌شود.'}`);
   forceClose();save();render();revealTownIntro();
  }));
@@ -168,7 +175,7 @@ function start(){
   if(prefer==='witch')forceMy('witch');
   if(prefer==='constable')forceMy('constable');
   if(prefer==='town'&&trialSets[0].includes('witch')){let good=trialSets.findIndex((ts,j)=>j>0&&!ts.includes('witch'));if(good<0)good=1;let idx=trialSets[0].indexOf('witch');let tidx=trialSets[good].findIndex(x=>x==='innocent');if(tidx<0)tidx=0;[trialSets[0][idx],trialSets[good][tidx]]=[trialSets[good][tidx],trialSets[0][idx]];}
-  let players=cast.slice(0,n).map((c,i)=>({id:i,name:c[0],character:i===0?'در انتظار انتخاب':TOWN.byId[characterDeal.hands[i][0]].en,townHallId:i===0?null:characterDeal.hands[i][0],abilityCharges:i===0?null:TOWN.byId[characterDeal.hands[i][0]].initialCharges,portrait:i===0?`${P}${c[2]}.webp`:TOWN.byId[characterDeal.hands[i][0]].image,alive:true,witchEver:trialSets[i].includes('witch'),accusations:0,redPile:[],effects:[],tryals:trialSets[i].map((t,k)=>({id:`${i}-${k}`,type:t,revealed:false})),hand:[]}));
+  let players=cast.slice(0,n).map((c,i)=>({id:i,name:c[0],character:i===0?'در انتظار انتخاب':TOWN.byId[characterDeal.hands[i][0]].en,townHallId:i===0?null:characterDeal.hands[i][0],abilityCharges:i===0?null:TOWN.byId[characterDeal.hands[i][0]].initialCharges,portrait:i===0?`${P}${c[2]}.webp`:TOWN.byId[characterDeal.hands[i][0]].image,abilityUses:{},alive:true,witchEver:trialSets[i].includes('witch'),accusations:0,redPile:[],effects:[],tryals:trialSets[i].map((t,k)=>({id:`${i}-${k}`,type:t,revealed:false})),hand:[]}));
   let deck=buildDeck();
   players.forEach(p=>{p.hand=deck.splice(0,3);});
   deck.splice(Math.min(9,Math.floor(deck.length*.23)),0,'conspiracy');
@@ -268,7 +275,10 @@ function removeAlibiAccusations(target){
    for(let j=0;j<pile.length;j++)if(mask&(1<<j)){total+=CARD[pile[j]]?.value||0;indices.push(j);}
    if(total<=3&&total>score){best=indices;score=total;}
  }
- for(const i of best.reverse())game.discard.push(pile.splice(i,1)[0]);
+ for(const i of best.reverse()){
+  const removed=pile.splice(i,1)[0];
+  if(removed!=='witness')game.discard.push(removed==='accCotton'?'acc3':removed);
+ }
  target.accusations=Math.max(0,target.accusations-score);
  return score;
 }
@@ -307,7 +317,7 @@ function playCard(by,handIndex,targetId,bot=false,destinationId=null){
     log('توانایی آن','آن پیش از افشای Tryal دو کارت اضافی دریافت کرد.');
    }
    target.accusations=0;
-   game.discard.push(...target.redPile.filter(k=>k!=='witness'&&k!=='accCotton'));target.redPile=[];
+   game.discard.push(...target.redPile.filter(k=>k!=='witness').map(k=>k==='accCotton'?'acc3':k));target.redPile=[];
    game.pendingReveal=target.id;game.pendingRevealActor=by;
   }
  }else if(key==='alibi'){
@@ -382,14 +392,34 @@ function requestTryalReveal(id){
 }
 function revealTryal(id,index,source='tryal'){
  const p=member(id),t=p?.tryals[index];if(!t||t.revealed)return;
- t.revealed=true;log('کارت Tryal افشا شد',`یک کارت ${TRIALS[t.type].label} از ${p.name} رو شد.`);
+ t.revealed=true;
+ if(source!=='confess'&&source!=='death'){
+  for(const watcher of living().filter(q=>q.id!==id&&hasTown(q,'rebecca'))){
+   bonusDraw(watcher,1,{allowBlack:false});
+   log('توانایی ربکا',`${watcher.name} با افشای Tryal یک کارت کشید.`);
+  }
+ }log('کارت Tryal افشا شد',`یک کارت ${TRIALS[t.type].label} از ${p.name} رو شد.`);
  game.lastPublic=`Tryal ${p.name} افشا شد: ${TRIALS[t.type].label}`;
  if(t.type==='witch'||p.tryals.every(x=>x.revealed))eliminate(id,t.type==='witch'?'افشای کارت Witch':'افشای تمام Tryalها');
  winCheck();
 }
-function eliminate(id,why){const p=member(id);if(!p?.alive)return;p.alive=false;p.tryals.forEach(t=>t.revealed=true);game.discard.push(...p.hand,...(p.redPile||[]),...p.effects);p.hand=[];p.redPile=[];p.effects=[];
+function eliminate(id,why,fromMatchmaker=false){
+ const p=member(id);if(!p?.alive)return;
+ const matched=p.effects.includes('matchmaker');
+ const inheritors=living().filter(other=>other.id!==id&&hasTown(other,'john'));
+ for(const inheritor of inheritors){
+  inheritor.hand.push(...p.hand,...p.effects.filter(k=>CARD[k]?.kind==='blue'));
+  log('توانایی جان',`${inheritor.name} کارت‌های باقی‌مانده ${p.name} را به ارث برد.`);
+ }
+ p.alive=false;p.tryals.forEach(t=>t.revealed=true);if(!inheritors.length)game.discard.push(...p.hand,...p.effects.filter(k=>CARD[k]?.kind==='blue'));
+ game.discard.push(...(p.redPile||[]).filter(k=>k!=='witness'),...p.effects.filter(k=>CARD[k]?.kind!=='blue'));p.hand=[];p.redPile=[];p.effects=[];
  if(living().length===2){for(const q of living()){const keep=[];for(const key of q.effects){if(CARD[key]?.kind==='blue')game.discard.push(key);else keep.push(key);}q.effects=keep;}}
- log('بازیکن حذف شد',`${p.name} به علت ${why} از بازی حذف شد.`);if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
+ log('بازیکن حذف شد',`${p.name} به علت ${why} از بازی حذف شد.`);
+ if(matched&&!fromMatchmaker){
+  const partner=living().find(q=>q.effects.includes('matchmaker')&&!hasTown(q,'mary'));
+  if(partner)eliminate(partner.id,'پیوند Matchmaker',true);
+ }
+ if(game.blackCat===id)game.blackCat=living()[0]?.id??null;if(!winCheck()&&game.phase==='turn'&&game.current===id){advanceTurn();}}
 function drawTwo(by,count=2){
  const owner=member(by);
  if(!owner?.alive||game.phase!=='turn'||game.current!==by||game.pendingReveal!=null)return false;
