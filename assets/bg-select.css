@@ -1,0 +1,18 @@
+
+/* Accessible shared custom select — keeps original native select in sync */
+.bg-select{position:relative;display:block;min-width:0;width:100%}
+.bg-select>.bg-native{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)!important;overflow:hidden!important;padding:0!important;margin:0!important}
+.bg-select-trigger{width:100%;min-height:43px;display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:right;padding:9px 13px!important;border:1px solid rgba(217,187,135,.24)!important;border-radius:12px!important;background:linear-gradient(160deg,#152532,#0b161f)!important;color:#f4ede4!important;font:600 12px/1.8 'Vazirmatn',Tahoma,sans-serif!important;cursor:pointer;box-shadow:inset 0 1px #ffffff0c;transition:background .2s,border-color .2s,box-shadow .2s,transform .2s!important}
+.bg-select-trigger:hover,.bg-select.is-open>.bg-select-trigger{border-color:#dcb77a9c!important;background:linear-gradient(160deg,#1e3240,#101e2a)!important}
+.bg-select-trigger:focus-visible{outline:2px solid #efd095!important;outline-offset:3px}
+.bg-select-trigger::after{content:"";flex:none;width:8px;height:8px;border:solid #e7be82;border-width:0 0 1.8px 1.8px;transform:rotate(-45deg);transition:transform .22s ease}
+.bg-select.is-open>.bg-select-trigger::after{transform:translateY(3px) rotate(135deg)}
+.bg-select-trigger:disabled{opacity:.45;cursor:not-allowed}
+.bg-select-popover{position:fixed;z-index:2000;background:#101e2b;border:1px solid #c5a16d75;border-radius:15px;padding:6px;box-shadow:0 24px 60px #000b,0 0 0 1px #ffffff0c;overflow-y:auto;overscroll-behavior:contain;max-height:min(300px,60vh);min-width:150px;direction:rtl;animation:bgSelectIn .15s ease}
+.bg-select-option{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;text-align:right;border:0;border-radius:9px;padding:10px 12px;min-height:39px;cursor:pointer;background:transparent;color:#dce6ec;font:500 12px/1.7 'Vazirmatn',Tahoma,sans-serif;transition:background .16s,color .16s}
+.bg-select-option:hover,.bg-select-option.is-active{background:#293a46;color:#ffdfab}
+.bg-select-option[aria-selected="true"]{background:linear-gradient(100deg,#53422c,#2d3740);color:#f5d29a;font-weight:800}
+.bg-select-option[aria-selected="true"]::after{content:"✓";font-weight:900;flex:none;color:#e9c68c}
+.bg-select-option:disabled{opacity:.35;cursor:not-allowed}
+@keyframes bgSelectIn{from{opacity:0;transform:translateY(-5px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.bg-select-popover{animation:none}.bg-select-trigger::after{transition:none}}
