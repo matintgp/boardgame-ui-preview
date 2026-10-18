@@ -1,0 +1,32 @@
+
+/* Town Hall character draft: full-size historical character cards */
+.townhall-draft{display:grid;gap:18px}
+.townhall-draft-intro{padding:14px 16px;background:#0b1822;border:1px solid #e1b67943;border-radius:17px;color:#cdd7dc;line-height:2}
+.townhall-draft-intro strong{color:#f2d39d}
+.townhall-draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.townhall-draft-grid.single{grid-template-columns:minmax(0,420px);justify-content:center}
+.townhall-card{border:1px solid #c99e635c;background:linear-gradient(180deg,#1e2b34,#0d1721);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;min-width:0;box-shadow:0 15px 40px #0006;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.townhall-card:hover,.townhall-card:focus-within{transform:translateY(-4px);border-color:#f0cc91;box-shadow:0 21px 50px #0008,0 0 0 2px #eac18322}
+.townhall-card .townhall-art{position:relative;aspect-ratio:16/11;overflow:hidden;border-bottom:1px solid #b8996570}
+.townhall-card .townhall-art img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block;filter:saturate(.8) contrast(1.04)}
+.townhall-card .townhall-art::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#111e2c8c,transparent 63%),linear-gradient(90deg,#cda56a19,transparent)}
+.townhall-card .townhall-number{position:absolute;bottom:12px;left:15px;color:#f1d19e;z-index:1;direction:ltr;font:700 11px Outfit,sans-serif;letter-spacing:.16em}
+.townhall-card .townhall-info{padding:16px 19px 19px;display:flex;flex-direction:column;gap:8px;flex:1}
+.townhall-card h3{font-size:24px;line-height:1.5;color:#f3deb7;margin:0}
+.townhall-card .townhall-en{font:600 12px/1.7 Outfit,sans-serif;color:#abbbc5;direction:ltr;text-align:right}
+.townhall-card .townhall-job{font-size:11px;color:#ebc994}
+.townhall-card .townhall-power{font-size:12px;line-height:2.1;color:#d1dce2;flex:1;min-height:64px}
+.townhall-card .townhall-power b{color:#dfbb81}
+.townhall-card .btn{width:100%;min-height:46px}
+.townhall-card.is-burned{filter:grayscale(.8);opacity:.5;transform:scale(.96)}
+.townhall-card.is-kept{border-color:#f3d79f;box-shadow:0 0 0 2px #f5cd8766,0 15px 50px #bc7e2140}
+.townhall-burn-note{font-size:11px;color:#c8ac85;text-align:center;line-height:1.85}
+.townhall-ability{display:grid;gap:9px;padding:13px 14px;border-radius:15px;background:linear-gradient(145deg,#192a33,#101923);border:1px solid #cba66b55;margin-top:14px}
+.townhall-ability strong{color:#f1d29b;font-size:13px;line-height:1.8}
+.townhall-ability p{margin:0!important;font-size:11px!important;line-height:2!important;color:#c2d0d8!important}
+.townhall-ability .ability-tag{font-size:10px;color:#e3c58f}
+.townhall-ability .btn{width:100%;font-size:11px}
+#overlay:has(.townhall-draft) .modal{width:min(96vw,1000px);max-height:93dvh}
+#overlay:has(.townhall-draft) .modal-body{overflow:auto}
+@media(max-width:610px){.townhall-draft-grid{grid-template-columns:1fr;gap:12px}.townhall-card .townhall-art{aspect-ratio:16/9}.townhall-card h3{font-size:20px}.townhall-card .townhall-info{padding:13px}.townhall-card .townhall-power{min-height:auto}.townhall-card .btn{min-height:43px}}
+@media(prefers-reduced-motion:reduce){.townhall-card{transition:none}.townhall-card:hover{transform:none}}
