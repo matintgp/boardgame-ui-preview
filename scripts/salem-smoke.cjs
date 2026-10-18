@@ -319,7 +319,7 @@ test('shared custom dropdown preserves native select change and keyboard control
  assert.equal(doc.getElementById('persons').value,'6');
  assert.equal(fired,1);
  assert.equal(trigger.getAttribute('aria-expanded'),'false');
- dom.window.close();
+ // Retain this fixture until process exit: jsdom mutation-observer microtasks still resolve after assertions.
 });
 
 test('the Salem character panel is loaded before gameplay and shared dropdown assets exist',()=>{
