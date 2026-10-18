@@ -169,6 +169,7 @@ test('Alibi removes at most three actual accusation points',()=>{
  s.players[0].hand=['alibi'];
  s.players[1].accusations=4;s.players[1].redPile=['acc3','acc1'];
  assert.equal(qa.playCard(0,0,1,false),true);
+ if(doc.querySelector('[data-alibi-mode="defense"]'))click(doc,'[data-alibi-mode="defense"]');
  assert.equal(s.players[1].accusations,1);
  assert.deepEqual(Array.from(s.players[1].redPile),['acc1']);
  dom.window.close();
