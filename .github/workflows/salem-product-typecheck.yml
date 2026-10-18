@@ -1,0 +1,30 @@
+name: Salem — React LiveKit TypeScript check
+on:
+  push:
+    branches: [main]
+    paths:
+      - salem/product/**
+      - .github/workflows/salem-product-typecheck.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: salem/product
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: salem/product/package.json
+      - name: Install frontend dependencies
+        run: npm install --no-fund --no-audit
+      - name: Strict TypeScript typecheck
+        run: npm run typecheck
