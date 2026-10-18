@@ -28,7 +28,7 @@ function sunrise(){
 function toggle(){
  enabled=!enabled;
  if(enabled)initAudio();else{quiet();if(dayAudio)dayAudio.pause();}
- if(enabled&&document.body.dataset.salemDawn==='true')night();
+ if(enabled&&document.querySelector('#salemDawn:not(.sunrise)'))night();
  return enabled;
 }
 window.SalemAudio={toggle,isEnabled:()=>enabled,night,sunrise,stop:()=>{quiet();if(dayAudio)dayAudio.pause();}};
